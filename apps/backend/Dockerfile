@@ -8,7 +8,7 @@ COPY package.json package-lock.json ./
 COPY apps/backend/package.json apps/backend/tsconfig.json apps/backend/tsconfig.build.json apps/backend/nest-cli.json apps/backend/
 COPY apps/shared/package.json apps/shared/tsconfig.json apps/shared/
 COPY apps/backend/prisma/ apps/backend/prisma/
-COPY apps/shared/src/ apps/shared/
+COPY apps/shared/src/ apps/shared/src/
 COPY apps/backend/src/ apps/backend/src/
 
 RUN npm ci --include-workspace-root && \
