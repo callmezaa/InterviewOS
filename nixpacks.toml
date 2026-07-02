@@ -1,0 +1,12 @@
+[phases.build]
+cmds = [
+  "npm ci --include-workspace-root",
+  "npm run build --workspace=apps/shared",
+  "npm run build --workspace=apps/backend"
+]
+
+[phases.start]
+cmd = "node apps/backend/dist/src/main.js"
+
+[start]
+cmd = "node apps/backend/dist/src/main.js"
