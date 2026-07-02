@@ -14,7 +14,7 @@ import { ActivityService } from '../activity/activity.service';
 import * as bcrypt from 'bcrypt';
 import { Role, Plan, Session } from '@prisma/client';
 import * as crypto from 'crypto';
-import otplib from 'otplib';
+import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 
 export interface SessionMetadata {
@@ -134,11 +134,12 @@ export class AuthService {
       throw new BadRequestException('2FA is already enabled');
     }
 
-    const secret = otplib.generateSecret();
-    const otpauth = otplib.generateURI({
+    const secret = speakeasy.generateSecret({ name: 'InterviewOS', issuer: 'InterviewOS' });
+    const otpauth = speakeasy.otpauthURL({
+      secret: secret.base32,
       issuer: 'InterviewOS',
       label: user.email,
-      secret,
+      type: 'totp',
     });
 
     const qrCode = await QRCode.toDataURL(otpauth);
@@ -156,13 +157,13 @@ export class AuthService {
     await this.prisma.user.update({
       where: { id: userId },
       data: {
-        twoFactorSecret: secret,
+        twoFactorSecret: secret.base32,
         twoFactorBackupCodes: JSON.stringify(backupCodesHashed),
       },
     });
 
     return {
-      secret,
+      secret: secret.base32,
       qrCode,
       backupCodes,
       uri: otpauth,
@@ -181,7 +182,11 @@ export class AuthService {
       );
     }
 
-    const isValid = otplib.verifySync({ token, secret: user.twoFactorSecret });
+    const isValid = speakeasy.totp.verify({
+      secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
+    });
     if (!isValid) {
       throw new BadRequestException('Invalid verification code');
     }
@@ -321,9 +326,10 @@ export class AuthService {
       throw new BadRequestException('2FA not configured');
 
     // Try TOTP first, then backup codes
-    const isTotpValid = otplib.verifySync({
-      token,
+    const isTotpValid = speakeasy.totp.verify({
       secret: user.twoFactorSecret,
+      encoding: 'base32',
+      token,
     });
     if (isTotpValid) {
       return this.generateAuthPayload(user, sessionMetadata);

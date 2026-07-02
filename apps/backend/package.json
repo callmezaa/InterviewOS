@@ -33,7 +33,6 @@
   "dependencies": {
     "@interviewos/shared": "*",
     "@nestjs/common": "^11.0.1",
-    "@scure/base": "1.1.9",
     "@nestjs/config": "^4.0.4",
     "@nestjs/core": "^11.0.1",
     "@nestjs/jwt": "^11.0.2",
@@ -47,6 +46,7 @@
     "@nestjs/throttler": "^6.5.0",
     "@nestjs/websockets": "^11.1.24",
     "@prisma/client": "^5.22.0",
+    "@scure/base": "1.1.9",
     "@sentry/node": "^10.56.0",
     "@socket.io/redis-adapter": "^8.3.0",
     "bcrypt": "^6.0.0",
@@ -69,6 +69,7 @@
     "resend": "^6.12.4",
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
+    "speakeasy": "^2.0.0",
     "stripe": "^22.2.0"
   },
   "devDependencies": {
