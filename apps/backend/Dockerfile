@@ -19,8 +19,6 @@ COPY apps/backend/src/ apps/backend/src/
 RUN cd apps/backend && npm run build && cd ../.. && \
     npm prune --omit=dev
 
-RUN ls -la apps/backend/dist/
-
 # ─── Production Stage ───────────────────────────────
 FROM node:22-alpine AS production
 
@@ -36,8 +34,6 @@ COPY --from=builder /build/apps/backend/prisma apps/backend/prisma/
 COPY --from=builder /build/apps/backend/package.json apps/backend/
 COPY --from=builder /build/package.json ./
 
-RUN ls -la apps/backend/dist/
-
 ENV NODE_ENV=production \
     PORT=3001 \
     PRISMA_CLIENT_ENGINE_TYPE=binary
@@ -50,4 +46,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -sf http://localhost:3001/api/health || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "apps/backend/dist/main.js"]
+CMD ["node", "apps/backend/dist/src/main.js"]
