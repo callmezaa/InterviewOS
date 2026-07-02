@@ -26,5 +26,8 @@
   "devDependencies": {
     "concurrently": "^9.1.2",
     "opencode-ponytail": "^4.7.3"
+  },
+  "overrides": {
+    "@scure/base": "1.1.9"
   }
 }
