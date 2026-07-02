@@ -30,10 +30,16 @@ async function bootstrap() {
 
   // Create the app with raw body buffer retained for Stripe webhook verification.
   // Disable the default NestJS logger — Pino handles all logging via LoggerModule.
-  const app = await NestFactory.create(AppModule, {
-    rawBody: true,
-    logger: false,
-  });
+  let app;
+  try {
+    app = await NestFactory.create(AppModule, {
+      rawBody: true,
+      logger: false,
+    });
+  } catch (err) {
+    console.error('FATAL: Failed to create NestJS app:', err);
+    process.exit(1);
+  }
 
   // Replace NestJS default logger with Pino so all existing Logger instances
   // (new Logger('Context')) output structured JSON through Pino.
@@ -76,6 +82,15 @@ async function bootstrap() {
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Authorization,Content-Type,Accept',
+  });
+
+  // ── Health endpoint bypass ──────────────────────────────────────────────────
+  // Railway healthchecks come from healthcheck.railway.app hostname.
+  // Register a raw Express /api/health handler BEFORE helmet so it's
+  //不受任何中间件限制
+  const httpAdapter = app.getHttpAdapter();
+  httpAdapter.get('/api/health', (_req: any, res: any) => {
+    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
   // ── Security Headers (Helmet + CSP) ─────────────────────────────────────────
@@ -182,9 +197,9 @@ async function bootstrap() {
   app.use('/avatars', express.static(recordingsDir));
 
   const port = process.env.PORT || 3001;
-  await app.listen(port);
+  await app.listen(port, '0.0.0.0');
 
-  logger.log(`InterviewOS Backend running on: http://localhost:${port}/api`);
+  logger.log(`InterviewOS Backend running on: http://0.0.0.0:${port}/api`);
 
   // ── Graceful Shutdown ──────────────────────────────────────────────────────
   // On SIGTERM/SIGINT, close the HTTP server and disconnect Redis clients.
@@ -198,4 +213,7 @@ async function bootstrap() {
     });
   }
 }
-void bootstrap();
+void bootstrap().catch((err) => {
+  console.error('FATAL: Unhandled error in bootstrap:', err);
+  process.exit(1);
+});
