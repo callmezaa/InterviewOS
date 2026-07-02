@@ -12,9 +12,7 @@ COPY apps/shared/src/ apps/shared/src/
 
 RUN npm ci --include-workspace-root && \
     cd apps/shared && npm run build && cd ../.. && \
-    npm run prisma:generate --workspace=apps/backend && \
-    mkdir -p node_modules/@prisma && \
-    cp -r apps/backend/node_modules/@prisma/client node_modules/@prisma/client/
+    npm run prisma:generate --workspace=apps/backend
 
 COPY apps/backend/src/ apps/backend/src/
 
@@ -30,6 +28,7 @@ RUN apk add --no-cache openssl tini curl && \
 WORKDIR /app
 
 COPY --from=builder /build/node_modules node_modules/
+COPY --from=builder /build/apps/backend/node_modules/@prisma/client node_modules/@prisma/client/
 COPY --from=builder /build/apps/shared apps/shared/
 COPY --from=builder /build/apps/backend/dist apps/backend/dist/
 COPY --from=builder /build/apps/backend/prisma apps/backend/prisma/
