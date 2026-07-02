@@ -12,7 +12,7 @@ COPY apps/shared/src/ apps/shared/src/
 
 RUN npm ci --include-workspace-root && \
     cd apps/shared && npm run build && cd ../.. && \
-    npm run prisma:generate --workspace=apps/backend
+    node node_modules/.bin/prisma generate --schema=apps/backend/prisma/schema.prisma
 
 COPY apps/backend/src/ apps/backend/src/
 
