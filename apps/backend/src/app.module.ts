@@ -47,10 +47,10 @@ import { ScheduleModule } from '@nestjs/schedule';
                     translateTime: 'SYS:HH:MM:ss',
                   },
                 },
-            genReqId: (req) =>
+            genReqId: (req: any) =>
               req.headers['x-request-id'] || crypto.randomUUID(),
             autoLogging: {
-              ignore: (req) => !!req.url?.startsWith('/api/health'),
+              ignore: (req: any) => !!req.url?.startsWith('/api/health'),
             },
             redact: {
               paths: [
@@ -69,10 +69,10 @@ import { ScheduleModule } from '@nestjs/schedule';
               remove: true,
             },
             serializers: {
-              req(req) {
+              req(req: any) {
                 return { id: req.id, method: req.method, url: req.url };
               },
-              res(res) {
+              res(res: any) {
                 return { statusCode: res.statusCode };
               },
             },
