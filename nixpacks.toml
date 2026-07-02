@@ -1,5 +1,6 @@
 [phases.build]
 cmds = [
+  "rm -rf node_modules/.cache",
   "npm ci --include-workspace-root",
   "npm run build --workspace=apps/shared",
   "npm run build --workspace=apps/backend"
