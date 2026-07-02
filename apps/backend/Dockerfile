@@ -1,14 +1,5 @@
-# ─── Build Stage: shared workspace ───────────────────
-FROM node:22-alpine AS shared-builder
-WORKDIR /build
-
-COPY apps/shared/package.json apps/shared/tsconfig.json apps/shared/
-COPY apps/shared/src/ apps/shared/src/
-RUN npm ci --workspace=apps/shared --include-workspace-root && \
-    npm run build --workspace=apps/shared
-
-# ─── Build Stage: backend ────────────────────────────
-FROM node:22-alpine AS backend-builder
+# ─── Build Stage ──────────────────────────────────────
+FROM node:22-alpine AS builder
 WORKDIR /build
 
 RUN apk add --no-cache openssl
@@ -16,9 +7,11 @@ RUN apk add --no-cache openssl
 COPY package.json package-lock.json ./
 COPY apps/backend/package.json apps/backend/tsconfig.json apps/backend/tsconfig.build.json apps/backend/nest-cli.json apps/backend/
 COPY apps/backend/prisma/ apps/backend/prisma/
-COPY --from=shared-builder /build/apps/shared/ apps/shared/
+COPY apps/shared/package.json apps/shared/tsconfig.json apps/shared/
+COPY apps/shared/src/ apps/shared/src/
 
 RUN npm ci --include-workspace-root && \
+    npm run build --workspace=apps/shared && \
     npm run prisma:generate --workspace=apps/backend
 
 COPY apps/backend/src/ apps/backend/src/
@@ -33,12 +26,12 @@ RUN apk add --no-cache openssl tini curl && \
 
 WORKDIR /app
 
-COPY --from=backend-builder /build/node_modules node_modules/
-COPY --from=backend-builder /build/apps/shared apps/shared/
-COPY --from=backend-builder /build/apps/backend/dist apps/backend/dist/
-COPY --from=backend-builder /build/apps/backend/prisma apps/backend/prisma/
-COPY --from=backend-builder /build/apps/backend/package.json apps/backend/
-COPY --from=backend-builder /build/package.json ./
+COPY --from=builder /build/node_modules node_modules/
+COPY --from=builder /build/apps/shared apps/shared/
+COPY --from=builder /build/apps/backend/dist apps/backend/dist/
+COPY --from=builder /build/apps/backend/prisma apps/backend/prisma/
+COPY --from=builder /build/apps/backend/package.json apps/backend/
+COPY --from=builder /build/package.json ./
 
 ENV NODE_ENV=production \
     PORT=3001 \
