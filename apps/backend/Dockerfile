@@ -28,7 +28,7 @@ RUN apk add --no-cache openssl tini curl && \
 WORKDIR /app
 
 COPY --from=builder /build/node_modules node_modules/
-COPY --from=builder /build/apps/backend/node_modules/@prisma/client node_modules/@prisma/client/
+COPY --from=builder /build/apps/backend/node_modules apps/backend/node_modules/
 COPY --from=builder /build/apps/shared apps/shared/
 COPY --from=builder /build/apps/backend/dist apps/backend/dist/
 COPY --from=builder /build/apps/backend/prisma apps/backend/prisma/
