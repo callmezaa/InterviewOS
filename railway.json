@@ -3,7 +3,7 @@
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "npm install --legacy-peer-deps && npm run build --workspace=apps/shared && npm run build --workspace=apps/backend",
-    "startCommand": "node apps/backend/dist/src/main.js",
+    "startCommand": "npm run prisma:deploy --workspace=apps/backend && node apps/backend/dist/src/main.js",
     "cache": false
   },
   "deploy": {

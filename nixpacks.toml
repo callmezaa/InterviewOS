@@ -6,4 +6,4 @@ cmds = [
 ]
 
 [start]
-cmd = "node apps/backend/dist/src/main.js"
+cmd = "npm run prisma:deploy --workspace=apps/backend && node apps/backend/dist/src/main.js"
