@@ -11,12 +11,15 @@ COPY apps/shared/package.json apps/shared/tsconfig.json apps/shared/
 COPY apps/shared/src/ apps/shared/src/
 
 RUN npm ci --include-workspace-root && \
-    npm run build --workspace=apps/shared && \
-    npm run prisma:generate --workspace=apps/backend
+    cd apps/shared && npm run build && cd ../.. && \
+    cd apps/backend && npx prisma generate && cd ../..
 
 COPY apps/backend/src/ apps/backend/src/
-RUN npm run build --workspace=apps/backend && \
+
+RUN cd apps/backend && npm run build && cd ../.. && \
     npm prune --omit=dev
+
+RUN ls -la apps/backend/dist/
 
 # ─── Production Stage ───────────────────────────────
 FROM node:22-alpine AS production
@@ -32,6 +35,8 @@ COPY --from=builder /build/apps/backend/dist apps/backend/dist/
 COPY --from=builder /build/apps/backend/prisma apps/backend/prisma/
 COPY --from=builder /build/apps/backend/package.json apps/backend/
 COPY --from=builder /build/package.json ./
+
+RUN ls -la apps/backend/dist/
 
 ENV NODE_ENV=production \
     PORT=3001 \
