@@ -1,13 +1,9 @@
 [phases.build]
 cmds = [
-  "rm -rf node_modules/.cache",
-  "npm ci --include-workspace-root",
+  "npm install --legacy-peer-deps",
   "npm run build --workspace=apps/shared",
   "npm run build --workspace=apps/backend"
 ]
-
-[phases.start]
-cmd = "node apps/backend/dist/src/main.js"
 
 [start]
 cmd = "node apps/backend/dist/src/main.js"
