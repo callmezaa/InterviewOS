@@ -14,6 +14,7 @@ import * as express from 'express';
 import * as path from 'path';
 
 async function bootstrap() {
+  console.log('[TRACE] bootstrap() entered');
   // ── Sentry Error Monitoring ──────────────────────────────────────────────
   // Initialize before the NestJS app so startup errors are also captured.
   Sentry.init({
@@ -32,10 +33,12 @@ async function bootstrap() {
   // Disable the default NestJS logger — Pino handles all logging via LoggerModule.
   let app;
   try {
+    console.log('[TRACE] calling NestFactory.create');
     app = await NestFactory.create(AppModule, {
       rawBody: true,
       logger: false,
     });
+    console.log('[TRACE] NestFactory.create succeeded');
   } catch (err) {
     console.error('FATAL: Failed to create NestJS app:', err);
     process.exit(1);
@@ -197,7 +200,9 @@ async function bootstrap() {
   app.use('/avatars', express.static(recordingsDir));
 
   const port = process.env.PORT || 3001;
+  console.log('[TRACE] about to listen on port', port);
   await app.listen(port, '0.0.0.0');
+  console.log('[TRACE] listen succeeded');
 
   logger.log(`InterviewOS Backend running on: http://0.0.0.0:${port}/api`);
 
@@ -217,3 +222,7 @@ void bootstrap().catch((err) => {
   console.error('FATAL: Unhandled error in bootstrap:', err);
   process.exit(1);
 });
+
+process.on('exit', (code) => console.log('[TRACE] process exit code:', code));
+process.on('unhandledRejection', (reason) => console.error('[TRACE] unhandledRejection:', reason));
+process.on('uncaughtException', (err) => console.error('[TRACE] uncaughtException:', err));
