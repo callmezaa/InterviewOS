@@ -20,4 +20,4 @@ EXPOSE 3001
 
 USER root
 
-CMD ["sh", "-c", "echo '=== BACKEND CONTAINER STARTING ===' && node --trace-uncaught apps/backend/dist/src/main.js"]
+CMD ["sh", "-c", "echo '=== STARTING ===' && ls -la apps/backend/dist/src/main.js && node -e \"console.log('node-ok')\" 2>&1 && echo '=== RUNNING APP ===' && node --trace-uncaught apps/backend/dist/src/main.js 2>&1"]
