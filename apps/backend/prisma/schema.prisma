@@ -1,0 +1,389 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  INTERVIEWER
+  CANDIDATE
+}
+
+enum Plan {
+  FREE
+  PRO
+  TEAM
+  ENTERPRISE
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum RecurrenceFrequency {
+  DAILY
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum QuestionStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum QuestionSource {
+  CURATED
+  COMMUNITY
+}
+
+enum IntegrationProvider {
+  SLACK
+  DISCORD
+  WEBHOOK
+}
+
+model User {
+  id                    String        @id @default(uuid())
+  email                 String        @unique
+  passwordHash          String?
+  name                  String
+  role                  Role          @default(CANDIDATE)
+  plan                  Plan          @default(FREE)
+  billingInterval       String?       @default("monthly")
+  stripeCustomerId      String?       @unique
+  stripeSubscriptionId  String?
+  subscriptionStatus    String?
+  currentPeriodEnd      DateTime?
+  trialEndsAt           DateTime?
+  provider              String?
+  providerId            String?
+  avatarUrl             String?
+  twoFactorSecret       String?
+  twoFactorEnabled      Boolean       @default(false)
+  twoFactorBackupCodes  String?
+  resetToken            String?       @unique
+  resetTokenExpiry      DateTime?
+  refreshToken          String?
+  refreshTokenExpiry    DateTime?
+  emailVerified         DateTime?
+  verificationToken     String?       @unique
+  verificationTokenExpiry DateTime?
+  organizationId        String?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  sessions              Session[]
+  activities            Activity[]
+  participants          Participant[]
+  recurringPatterns     RecurringPattern[]
+  integrations          Integration[]
+  questions             Question[]    @relation("QuestionAuthor")
+  questionVotes         QuestionVote[]
+  questionBookmarks     QuestionBookmark[]
+  templates             InterviewTemplate[] @relation("TemplateAuthor")
+  templateVotes         TemplateVote[]
+  templateBookmarks     TemplateBookmark[]
+  organization          Organization? @relation(fields: [organizationId], references: [id])
+  notificationPreference NotificationPreference?
+  notifications         Notification[]
+}
+
+model Activity {
+  id          String     @id @default(uuid())
+  userId      String
+  type        String     // interview_scheduled | interview_completed | interview_cancelled | interview_rescheduled | interview_active | feedback_ready | account_created | guest_converted | share_created
+  title       String
+  description String?
+  interviewId String?
+  metadata    Json?
+  createdAt   DateTime   @default(now())
+
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interview  Interview? @relation(fields: [interviewId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  userId       String
+  refreshToken String   @unique
+  deviceName   String?
+  deviceType   String?  // mobile | tablet | desktop | unknown
+  browser      String?
+  os           String?
+  ipAddress    String?
+  userAgent    String?
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime @default(now())
+  expiresAt    DateTime
+
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Organization {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  primaryColor String  @default("#0066cc")
+  theme       Json?    // ThemeConfig: full color palette override
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  members     User[]
+}
+
+model Interview {
+  id                  String            @id @default(uuid())
+  title               String
+  description         String?
+  status              InterviewStatus   @default(SCHEDULED)
+  scheduledTime       DateTime
+  codeContent         String            @default("// Write your collaborative code here\n")
+  language            String            @default("javascript")
+  transcript          Json?             // Array of { speakerName: string, text: string, timestamp: string }
+  whiteboardShapes    Json?             // Array of shapes for the collaborative whiteboard
+  codeHistory         Json?             // Array of { codeContent: string, language: string, timestamp: string }
+  feedback            Json?             // Object containing { score, technicalRating, communicationRating, summary, detailedReview }
+  proctoringLogs      Json?             // Array of proctoring events
+  recordingUrl        String?           // Cloud storage URL of the final .webm interview recording
+  recordingSize       Int?              // File size in bytes
+  recordingDuration   Float?            // Duration in seconds
+  recordingMimeType   String?           // MIME type (e.g. video/webm;codecs=vp9,opus)
+  questionId          String?
+  shareToken          String?           @unique
+  recurringPatternId  String?
+  instanceNumber      Int?              // Which instance in the recurring series (1-based)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  participants        Participant[]
+  question            Question?         @relation(fields: [questionId], references: [id])
+  recurringPattern    RecurringPattern? @relation(fields: [recurringPatternId], references: [id])
+  activities          Activity[]
+}
+
+model RecurringPattern {
+  id             String              @id @default(uuid())
+  frequency      RecurrenceFrequency
+  dayOfWeek      Int?                // 0=Sun..6=Sat for WEEKLY/BIWEEKLY
+  dayOfMonth     Int?                // 1-31 for MONTHLY
+  time           String              // "HH:mm" extracted from first interview
+  startDate      DateTime
+  endDate        DateTime?
+  maxOccurrences Int?                // null = no limit
+  nextOccurrence DateTime
+  instanceCount  Int                 @default(1)
+  isActive       Boolean             @default(true)
+  userId         String
+  templateId     String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  interviews      Interview[]
+  user            User                @relation(fields: [userId], references: [id])
+}
+
+model Participant {
+  id          String    @id @default(uuid())
+  userId      String
+  interviewId String
+  role        Role      // Role within this specific interview
+  joinedAt    DateTime?
+  leftAt      DateTime?
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  interview   Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, interviewId])
+}
+
+model Question {
+  id              String             @id @default(uuid())
+  title           String
+  description     String
+  starterCode     String?
+  solutionCode    String?
+  testCode        String?
+  language        String             @default("javascript")
+  difficulty      QuestionDifficulty
+  status          QuestionStatus     @default(DRAFT)
+  source          QuestionSource     @default(COMMUNITY)
+
+  // Author (nullable for system-curated)
+  authorId        String?
+  author          User?              @relation("QuestionAuthor", fields: [authorId], references: [id])
+
+  // Category
+  categoryId      String?
+  category        QuestionCategory?  @relation(fields: [categoryId], references: [id])
+
+  // Content fields
+  tags            String[]           @default([])
+  conceptQuestions Json?             // string[]
+  systemDesign    String?
+  hints           Json?              // string[]
+
+  // Engagement
+  upvotes         Int                @default(0)
+  downvotes       Int                @default(0)
+  viewCount       Int                @default(0)
+  usageCount      Int                @default(0)
+
+  // Relations
+  interviews      Interview[]
+  templates       InterviewTemplate[]
+  votes           QuestionVote[]
+  bookmarks       QuestionBookmark[]
+
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+}
+
+model QuestionCategory {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  slug        String     @unique
+  description String?
+  icon        String?
+  order       Int        @default(0)
+  questions   Question[]
+}
+
+model QuestionVote {
+  id         String   @id @default(uuid())
+  userId     String
+  questionId String
+  value      Int      // 1 = upvote, -1 = downvote
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, questionId])
+}
+
+model QuestionBookmark {
+  id         String   @id @default(uuid())
+  userId     String
+  questionId String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, questionId])
+}
+
+model InterviewTemplate {
+  id          String             @id @default(uuid())
+  title       String
+  description String?
+  category    String             // FRONTEND | BACKEND | DSA
+  language    String             @default("javascript")
+  difficulty  QuestionDifficulty?
+  starterCode String?
+  questionId  String?
+  question    Question?          @relation(fields: [questionId], references: [id])
+  source      QuestionSource     @default(COMMUNITY)
+  status      QuestionStatus     @default(DRAFT)
+  authorId    String?
+  author      User?              @relation("TemplateAuthor", fields: [authorId], references: [id])
+  tags        String[]           @default([])
+  upvotes     Int                @default(0)
+  downvotes   Int                @default(0)
+  viewCount   Int                @default(0)
+  isDefault   Boolean            @default(false)
+  usageCount  Int                @default(0)
+  createdBy   String?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  votes       TemplateVote[]
+  bookmarks   TemplateBookmark[]
+
+  @@index([source, status])
+}
+
+model TemplateVote {
+  id         String           @id @default(uuid())
+  userId     String
+  templateId String
+  value      Int              // 1 = upvote, -1 = downvote
+  user       User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   InterviewTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, templateId])
+}
+
+model TemplateBookmark {
+  id         String            @id @default(uuid())
+  userId     String
+  templateId String
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   InterviewTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+
+  @@unique([userId, templateId])
+}
+
+model NotificationPreference {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  invitations Boolean  @default(true)
+  reminders   Boolean  @default(true)
+  feedback    Boolean  @default(true)
+  team        Boolean  @default(false)
+  updates     Boolean  @default(false)
+  digest      String   @default("immediate") // immediate | daily | weekly
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // interview_reminder | interview_cancelled | interview_rescheduled | feedback_ready | interview_invitation
+  title     String
+  message   String
+  link      String?  // e.g. /review/abc123
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Integration {
+  id                String              @id @default(uuid())
+  userId            String
+  provider          IntegrationProvider
+  accessToken       String?
+  refreshToken      String?
+  tokenExpiresAt    DateTime?
+  webhookUrl        String?
+  channelId         String?
+  channelName       String?
+  teamId            String?
+  teamName          String?
+  botUserId         String?
+  scope             String?
+  metadata          Json?
+  enabled           Boolean             @default(true)
+  notificationTypes String[]            @default([])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+}

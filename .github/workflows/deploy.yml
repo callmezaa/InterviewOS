@@ -1,0 +1,351 @@
+name: Deploy
+
+on:
+  push:
+    branches: [dev, main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+  SENTRY_ORG: ${{ vars.SENTRY_ORG || 'interviewos' }}
+
+jobs:
+  # ─── Security Audit ──────────────────────────────────
+  security-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
+  # ─── Validation ──────────────────────────────────────
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run lint
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run typecheck
+
+  # ─── Tests ───────────────────────────────────────────
+  test-frontend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - run: npm run test --workspace=apps/frontend
+
+  test-backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: 123456
+          POSTGRES_DB: InterviewOS
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:123456@localhost:5432/InterviewOS
+      - name: Run Prisma migrations
+        run: npm run prisma:migrate --workspace=apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:123456@localhost:5432/InterviewOS
+      - name: Run backend unit tests
+        run: npm run test --workspace=apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:123456@localhost:5432/InterviewOS
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+      - name: Run backend E2E tests
+        run: npm run test:e2e --workspace=apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:123456@localhost:5432/InterviewOS
+          REDIS_HOST: localhost
+          REDIS_PORT: "6379"
+
+  # ─── Build ───────────────────────────────────────────
+  build:
+    needs: [lint, typecheck]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=apps/backend
+        env:
+          DATABASE_URL: postgresql://postgres:123456@localhost:5432/InterviewOS
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: apps/frontend/.next/cache
+          key: ${{ runner.os }}-nextjs-deploy-${{ hashFiles('apps/frontend/package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-nextjs-deploy-
+      - run: npm run build
+        env:
+          DATABASE_URL: postgresql://postgres:123456@localhost:5432/InterviewOS
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output
+          path: |
+            apps/frontend/.next
+            apps/backend/dist
+          retention-days: 1
+
+  # ─── Deploy Frontend to Vercel ───────────────────────
+  deploy-frontend:
+    needs: [build, test-frontend, test-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      url: ${{ steps.deploy.outputs.preview-url || github.ref == 'refs/heads/main' && vars.PRODUCTION_URL || vars.STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Restore build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-output
+          path: apps/frontend/.next
+      - name: Create Sentry release
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ env.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_FRONTEND_PROJECT || 'interviewos-frontend' }}
+        with:
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          version: ${{ github.sha }}
+          sourcemaps: ./apps/frontend/.next
+          ignore_missing: true
+        continue-on-error: true
+      - id: deploy
+        name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: ${{ github.ref == 'refs/heads/main' && '--prod' || '' }}
+          vercel-version: 41
+          working-directory: apps/frontend
+      - name: Health check
+        id: health-check
+        run: |
+          URL="${{ steps.deploy.outputs.preview-url || (github.ref == 'refs/heads/main' && vars.PRODUCTION_URL || vars.STAGING_URL) }}"
+          echo "Health-checking $URL"
+          for i in $(seq 1 12); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%%{http_code}" "$URL" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "301" ] || [ "$HTTP_STATUS" = "302" ]; then
+              echo "✅ Frontend is healthy (status $HTTP_STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i: got $HTTP_STATUS, retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Frontend health check failed"
+          exit 1
+      - name: GitHub Deployment status — success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment-url: ${{ steps.deploy.outputs.preview-url || (github.ref == 'refs/heads/main' && vars.PRODUCTION_URL || vars.STAGING_URL) }}
+          state: success
+          deployment-id: ${{ steps.deployment.outputs.deployment-id }}
+      - name: Notify — deploy success
+        if: success()
+        uses: slackapi/slack-github-action@v2
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "✅ *Frontend deployed* to `${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}`\n• Commit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n• By: ${{ github.actor }}\n• URL: ${{ steps.deploy.outputs.preview-url || (github.ref == 'refs/heads/main' && vars.PRODUCTION_URL || vars.STAGING_URL) }}"
+            }
+      - name: Notify — deploy failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "❌ *Frontend deploy failed* to `${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}`\n• Commit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n• By: ${{ github.actor }}\n• Workflow: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }
+
+  # ─── Deploy Backend to Railway ───────────────────────
+  deploy-backend:
+    needs: [build, test-frontend, test-backend]
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+      url: ${{ github.ref == 'refs/heads/main' && vars.BACKEND_PRODUCTION_URL || vars.BACKEND_STAGING_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+      - run: npm ci
+      - name: Generate Prisma client
+        run: npm run prisma:generate --workspace=apps/backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Run database migrations (safety check)
+        id: migrate-check
+        run: |
+          echo "🔍 Checking pending migrations..."
+          npm run prisma:deploy --workspace=apps/backend -- --preview-feature --dry-run 2>&1 || true
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        continue-on-error: true
+      - name: Create Sentry release
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ env.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ vars.SENTRY_BACKEND_PROJECT || 'interviewos-backend' }}
+        with:
+          environment: ${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}
+          version: ${{ github.sha }}
+          ignore_missing: true
+        continue-on-error: true
+      - name: Build shared + backend
+        run: npm run build --workspace=apps/shared && npm run build --workspace=apps/backend
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      - name: Deploy to Railway
+        id: deploy
+        run: |
+          npx railway up \
+            --service=${{ vars.RAILWAY_BACKEND_SERVICE || 'backend' }} \
+            --environment=${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }} \
+            --ci
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Run database migrations (apply)
+        if: github.ref == 'refs/heads/main'
+        run: |
+          echo "🚀 Applying database migrations..."
+          npx railway run \
+            --service=${{ vars.RAILWAY_BACKEND_SERVICE || 'backend' }} \
+            --environment=production \
+            "npx prisma migrate deploy"
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      - name: Health check
+        id: health-check
+        run: |
+          URL="${{ github.ref == 'refs/heads/main' && vars.BACKEND_PRODUCTION_URL || vars.BACKEND_STAGING_URL }}/api/health"
+          echo "Health-checking $URL"
+          for i in $(seq 1 12); do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%%{http_code}" "$URL" 2>/dev/null || echo "000")
+            if [ "$HTTP_STATUS" = "200" ] || [ "$HTTP_STATUS" = "204" ]; then
+              echo "✅ Backend is healthy (status $HTTP_STATUS)"
+              exit 0
+            fi
+            echo "Attempt $i: got $HTTP_STATUS, retrying in 10s..."
+            sleep 10
+          done
+          echo "❌ Backend health check failed"
+          exit 1
+      - name: Smoke test
+        run: |
+          URL="${{ github.ref == 'refs/heads/main' && vars.BACKEND_PRODUCTION_URL || vars.BACKEND_STAGING_URL }}"
+          echo "🔍 Running smoke tests against $URL"
+          curl -sf "$URL/api/health" > /dev/null && echo "✅ Health endpoint OK"
+          curl -sf "$URL/api/v1/questions?limit=1" > /dev/null && echo "✅ Questions endpoint OK"
+        continue-on-error: true
+      - name: Github Deployment status — success
+        if: success()
+        uses: chrnorm/deployment-status@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment-url: ${{ github.ref == 'refs/heads/main' && vars.BACKEND_PRODUCTION_URL || vars.BACKEND_STAGING_URL }}
+          state: success
+      - name: Notify — deploy success
+        if: success()
+        uses: slackapi/slack-github-action@v2
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "✅ *Backend deployed* to `${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}`\n• Commit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n• By: ${{ github.actor }}\n• URL: ${{ github.ref == 'refs/heads/main' && vars.BACKEND_PRODUCTION_URL || vars.BACKEND_STAGING_URL }}"
+            }
+      - name: Notify — deploy failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2
+        continue-on-error: true
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "text": "❌ *Backend deploy failed* to `${{ github.ref == 'refs/heads/main' && 'production' || 'staging' }}`\n• Commit: <${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }}|${{ github.sha }}>\n• By: ${{ github.actor }}\n• Workflow: <${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}|View run>"
+            }

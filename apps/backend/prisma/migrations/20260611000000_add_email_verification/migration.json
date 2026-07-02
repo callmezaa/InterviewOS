@@ -1,0 +1,20 @@
+{
+  "version": "5.2",
+  "steps": [
+    {
+      "tag": "AlterTableAddColumns",
+      "table": "User",
+      "columns": [
+        { "name": "emailVerified", "type": "TIMESTAMP(3)", "default": null },
+        { "name": "verificationToken", "type": "TEXT", "default": null },
+        { "name": "verificationTokenExpiry", "type": "TIMESTAMP(3)", "default": null }
+      ]
+    },
+    {
+      "tag": "CreateIndex",
+      "unique": true,
+      "table": "User",
+      "columns": ["verificationToken"]
+    }
+  ]
+}

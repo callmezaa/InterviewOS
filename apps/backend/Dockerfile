@@ -1,0 +1,55 @@
+# ─── Build Stage: shared workspace ───────────────────
+FROM node:22-alpine AS shared-builder
+WORKDIR /build
+
+COPY apps/shared/package.json apps/shared/tsconfig.json apps/shared/
+COPY apps/shared/src/ apps/shared/src/
+RUN npm ci --workspace=apps/shared --include-workspace-root && \
+    npm run build --workspace=apps/shared
+
+# ─── Build Stage: backend ────────────────────────────
+FROM node:22-alpine AS backend-builder
+WORKDIR /build
+
+RUN apk add --no-cache openssl
+
+COPY package.json package-lock.json ./
+COPY apps/backend/package.json apps/backend/tsconfig.json apps/backend/tsconfig.build.json apps/backend/nest-cli.json apps/backend/
+COPY apps/backend/prisma/ apps/backend/prisma/
+COPY --from=shared-builder /build/apps/shared/ apps/shared/
+
+RUN npm ci --include-workspace-root && \
+    npm run prisma:generate --workspace=apps/backend
+
+COPY apps/backend/src/ apps/backend/src/
+RUN npm run build --workspace=apps/backend && \
+    npm prune --omit=dev
+
+# ─── Production Stage ───────────────────────────────
+FROM node:22-alpine AS production
+
+RUN apk add --no-cache openssl tini curl && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
+
+WORKDIR /app
+
+COPY --from=backend-builder /build/node_modules node_modules/
+COPY --from=backend-builder /build/apps/shared apps/shared/
+COPY --from=backend-builder /build/apps/backend/dist apps/backend/dist/
+COPY --from=backend-builder /build/apps/backend/prisma apps/backend/prisma/
+COPY --from=backend-builder /build/apps/backend/package.json apps/backend/
+COPY --from=backend-builder /build/package.json ./
+
+ENV NODE_ENV=production \
+    PORT=3001 \
+    PRISMA_CLIENT_ENGINE_TYPE=binary
+
+EXPOSE 3001
+
+USER appuser
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD curl -sf http://localhost:3001/api/health || exit 1
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "apps/backend/dist/main.js"]

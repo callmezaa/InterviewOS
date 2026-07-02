@@ -1,0 +1,30 @@
+{
+  "name": "interview-os",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Production-grade AI-powered realtime interview platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=apps/frontend\" \"npm run start:dev --workspace=apps/backend\"",
+    "build": "npm run build --workspace=apps/shared && npm run build --workspace=apps/backend && npm run build --workspace=apps/frontend",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspace=apps/frontend --workspace=apps/backend",
+    "test:frontend": "npm run test --workspace=apps/frontend",
+    "test:backend:unit": "npm run test --workspace=apps/backend",
+    "test:backend:e2e": "npm run test:e2e --workspace=apps/backend",
+    "test:e2e": "npx playwright test",
+    "test:watch": "npm run test:watch --workspace=apps/frontend",
+    "test:coverage": "npm run test --workspace=apps/frontend -- --coverage",
+    "test:all": "npm run test && npm run test:backend:e2e && npm run test:e2e",
+    "db:up": "docker-compose up -d",
+    "db:down": "docker-compose down",
+    "db:migrate": "npm run prisma:migrate --workspace=apps/backend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "opencode-ponytail": "^4.7.3"
+  }
+}
