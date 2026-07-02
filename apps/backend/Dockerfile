@@ -20,4 +20,4 @@ EXPOSE 3001
 
 USER root
 
-CMD ["sh", "-c", "echo '=== MEMINFO ===' && head -3 /proc/meminfo && echo '=== RUNNING APP ===' && node --trace-uncaught --unhandled-rejections=strict apps/backend/dist/src/main.js 2>&1"]
+CMD ["node", "-e", "console.log('PRE-REQUIRE'); try { require('./apps/backend/dist/src/main.js'); console.log('POST-REQUIRE'); } catch(e) { console.error('REQUIRE-ERROR:', e.message, e.stack); process.exit(1); }"]
