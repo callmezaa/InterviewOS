@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import * as Sentry from '@sentry/node';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
@@ -40,8 +41,9 @@ async function bootstrap() {
     });
     console.log('[TRACE] NestFactory.create succeeded');
   } catch (err) {
-    console.error('FATAL: Failed to create NestJS app:', err);
-    process.exit(1);
+    process.stderr.write('FATAL: Failed to create NestJS app: ' + (err instanceof Error ? err.stack || err.message : String(err)) + '\n');
+    process.exitCode = 1;
+    return;
   }
 
   // Replace NestJS default logger with Pino so all existing Logger instances
@@ -219,10 +221,13 @@ async function bootstrap() {
   }
 }
 void bootstrap().catch((err) => {
-  console.error('FATAL: Unhandled error in bootstrap:', err);
-  process.exit(1);
+  process.stderr.write('FATAL: Unhandled error in bootstrap: ' + (err instanceof Error ? err.stack || err.message : String(err)) + '\n');
+  process.exitCode = 1;
 });
 
-process.on('exit', (code) => console.log('[TRACE] process exit code:', code));
-process.on('unhandledRejection', (reason) => console.error('[TRACE] unhandledRejection:', reason));
-process.on('uncaughtException', (err) => console.error('[TRACE] uncaughtException:', err));
+process.on('exit', (code) => process.stdout.write('[TRACE] process exit code: ' + code + '\n'));
+process.on('unhandledRejection', (reason) => process.stderr.write('[TRACE] unhandledRejection: ' + (reason instanceof Error ? reason.stack || reason.message : String(reason)) + '\n'));
+process.on('uncaughtException', (err) => {
+  process.stderr.write('[TRACE] uncaughtException: ' + (err instanceof Error ? err.stack || err.message : String(err)) + '\n');
+  process.exitCode = 1;
+});
