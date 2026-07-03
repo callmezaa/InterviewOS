@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "prebuild": "cd ../../ && npm run build --workspace=apps/shared",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -17,6 +18,7 @@
   },
   "dependencies": {
     "@interviewos/shared": "*",
+    "lightningcss-linux-x64-gnu": "1.32.0",
     "@monaco-editor/react": "^4.7.0",
     "@sentry/nextjs": "^10.56.0",
     "@tanstack/react-virtual": "^3.14.2",
