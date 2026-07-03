@@ -13,6 +13,7 @@ import { SentryExceptionFilter } from './common/filters/sentry-exception.filter'
 import { SentryUserInterceptor } from './common/interceptors/sentry-user.interceptor';
 import * as express from 'express';
 import * as path from 'path';
+import { writeFileSync } from 'fs';
 
 async function bootstrap() {
   console.log('[TRACE] bootstrap() entered');
@@ -47,9 +48,10 @@ async function bootstrap() {
     ]);
     console.log('[TRACE] NestFactory.create succeeded');
   } catch (err) {
-    console.log('FATAL:', err instanceof Error ? err.stack || err.message : String(err));
-    console.log('[TRACE] exiting in 1s...');
-    await new Promise(r => setTimeout(r, 1000));
+    const msg = 'FATAL: ' + (err instanceof Error ? err.stack || err.message : String(err));
+    writeFileSync('/tmp/crash.log', msg + '\n');
+    console.log(msg);
+    console.log('[TRACE] exiting...');
     process.exit(1);
   }
 
@@ -230,13 +232,25 @@ async function bootstrap() {
   }
 }
 void bootstrap().catch((err) => {
-  console.log('FATAL: Unhandled error in bootstrap:', err);
+  const msg = 'FATAL: Unhandled error in bootstrap: ' + (err instanceof Error ? err.stack || err.message : String(err));
+  writeFileSync('/tmp/crash.log', msg + '\n');
+  console.log(msg);
   process.exitCode = 1;
 });
 
-process.on('exit', (code) => console.log('[TRACE] process exit code:', code));
-process.on('unhandledRejection', (reason) => console.log('[TRACE] unhandledRejection:', reason));
+process.on('exit', (code) => {
+  const msg = '[TRACE] process exit code: ' + code;
+  try { writeFileSync('/tmp/crash.log', msg + '\n', { flag: 'a' }); } catch {}
+  console.log(msg);
+});
+process.on('unhandledRejection', (reason) => {
+  const msg = '[TRACE] unhandledRejection: ' + (reason instanceof Error ? reason.stack || reason.message : String(reason));
+  try { writeFileSync('/tmp/crash.log', msg + '\n', { flag: 'a' }); } catch {}
+  console.log(msg);
+});
 process.on('uncaughtException', (err) => {
-  console.log('[TRACE] uncaughtException:', err);
+  const msg = '[TRACE] uncaughtException: ' + (err instanceof Error ? err.stack || err.message : String(err));
+  try { writeFileSync('/tmp/crash.log', msg + '\n', { flag: 'a' }); } catch {}
+  console.log(msg);
   process.exitCode = 1;
 });
