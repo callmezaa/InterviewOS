@@ -35,7 +35,7 @@ async function bootstrap() {
   let app;
   try {
     console.log('[TRACE] calling NestFactory.create');
-    const createTimeout = new Promise<void>((_, reject) =>
+    const createTimeout: Promise<never> = new Promise((_, reject) =>
       setTimeout(() => reject(new Error('TIMEOUT: NestFactory.create did not resolve within 30s')), 30000),
     );
     app = await Promise.race([
