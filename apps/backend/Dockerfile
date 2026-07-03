@@ -15,4 +15,4 @@ RUN npm ci --include-workspace-root && \
 
 EXPOSE 3001
 
-CMD ["node", "apps/backend/dist/src/main.js"]
+CMD ["node", "apps/backend/dist/main.js"]
