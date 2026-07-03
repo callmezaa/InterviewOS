@@ -1,15 +1,15 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS",
-    "buildCommand": "npm install --legacy-peer-deps && npm run build --workspace=apps/shared && npm run build --workspace=apps/backend",
-    "startCommand": "npm run prisma:deploy --workspace=apps/backend && node apps/backend/dist/src/main.js",
+    "builder": "DOCKERFILE",
+    "buildCommand": null,
+    "startCommand": null,
     "cache": false
   },
   "deploy": {
     "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10,
+    "restartPolicyMaxRetries": 3,
     "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 120
+    "healthcheckTimeout": 300
   }
 }

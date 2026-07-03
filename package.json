@@ -24,7 +24,11 @@
     "db:migrate": "npm run prisma:migrate --workspace=apps/backend"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
     "concurrently": "^9.1.2",
     "opencode-ponytail": "^4.7.3"
+  },
+  "dependencies": {
+    "cors": "^2.8.6"
   }
 }
