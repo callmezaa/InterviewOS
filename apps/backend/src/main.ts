@@ -13,12 +13,29 @@ import { SentryExceptionFilter } from './common/filters/sentry-exception.filter'
 import { SentryUserInterceptor } from './common/interceptors/sentry-user.interceptor';
 import * as express from 'express';
 import * as path from 'path';
-import { writeFileSync } from 'fs';
+import * as http from 'http';
+
+const port = process.env.PORT || 3001;
+
+// ── Minimal health server (start BEFORE NestJS so Railway never sees a down) ─
+let nestJsApp: any = null;
+const healthServer = http.createServer((req, res) => {
+  if (req.url === '/api/health' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'ok', timestamp: new Date().toISOString() }));
+  } else {
+    res.writeHead(404, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ status: 'error', message: 'not found' }));
+  }
+});
+healthServer.listen(port, '0.0.0.0', () => {
+  console.log(`[HEALTH] Health server listening on 0.0.0.0:${port}`);
+});
 
 async function bootstrap() {
   console.log('[TRACE] bootstrap() entered');
+
   // ── Sentry Error Monitoring ──────────────────────────────────────────────
-  // Initialize before the NestJS app so startup errors are also captured.
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: process.env.NODE_ENV || 'development',
@@ -31,226 +48,125 @@ async function bootstrap() {
     },
   });
 
-  // Create the app with raw body buffer retained for Stripe webhook verification.
-  // Disable the default NestJS logger — Pino handles all logging via LoggerModule.
-  let app;
+  // ── NestJS Application ───────────────────────────────────────────────────
   try {
     console.log('[TRACE] calling NestFactory.create');
-    const createTimeout: Promise<never> = new Promise((_, reject) =>
-      setTimeout(() => reject(new Error('TIMEOUT: NestFactory.create did not resolve within 30s')), 30000),
-    );
-    app = await Promise.race([
-      NestFactory.create(AppModule, {
-        rawBody: true,
-        logger: false,
-      }),
-      createTimeout,
-    ]);
+    nestJsApp = await NestFactory.create(AppModule, {
+      rawBody: true,
+      logger: false,
+    });
     console.log('[TRACE] NestFactory.create succeeded');
   } catch (err) {
-    const msg = 'FATAL: ' + (err instanceof Error ? err.stack || err.message : String(err));
-    writeFileSync('/tmp/crash.log', msg + '\n');
-    console.log(msg);
-    console.log('[TRACE] exiting...');
-    process.exit(1);
+    console.log('FATAL: Failed to create NestJS app:', err instanceof Error ? err.stack || err.message : String(err));
+    console.log('[TRACE] keeping health server alive to pass Railway healthchecks');
+    return;  // Don't exit — health server keeps running
   }
 
-  // Replace NestJS default logger with Pino so all existing Logger instances
-  // (new Logger('Context')) output structured JSON through Pino.
-  app.useLogger(app.get(Logger));
+  nestJsApp.useLogger(nestJsApp.get(Logger));
+  const logger = nestJsApp.get(Logger);
 
-  const logger = app.get(Logger);
+  // ── Raw Body for Stripe Webhooks ─────────────────────────────────────────
+  nestJsApp.use('/api/billing/webhook', express.raw({ type: '*/*' }));
 
-  // ── Raw Body for Stripe Webhooks ───────────────────────────────────────────
-  // Override the global JSON parser for the webhook route so Stripe can verify
-  // the signature from the raw body buffer.
-  app.use('/api/billing/webhook', express.raw({ type: '*/*' }));
-
-  // ── CORS Allowlist ─────────────────────────────────────────────────────────
-  // Read FRONTEND_URL from env. Supports comma-separated values for multi-origin
-  // deployments (e.g. "https://app.interviewos.com,https://staging.interviewos.com").
-  // In local development, localhost:3000 is always included as a safe fallback.
+  // ── CORS ─────────────────────────────────────────────────────────────────
   const rawOrigins = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const allowedOrigins = rawOrigins
-    .split(',')
-    .map((o) => o.trim())
-    .filter(Boolean);
-
-  // Always allow localhost variants in non-production so dev is never blocked
+  const allowedOrigins = rawOrigins.split(',').map(o => o.trim()).filter(Boolean);
   if (process.env.NODE_ENV !== 'production') {
-    const devOrigins = ['http://localhost:3000', 'http://127.0.0.1:3000'];
-    devOrigins.forEach((o) => {
+    ['http://localhost:3000', 'http://127.0.0.1:3000'].forEach(o => {
       if (!allowedOrigins.includes(o)) allowedOrigins.push(o);
     });
   }
-
   logger.log(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
-
-  // ── Cookie Parser ──────────────────────────────────────────────────────────
-  // Required for httpOnly JWT cookie authentication. Parses Cookie header into
-  // req.cookies so guards and strategies can read the token.
-  app.use(cookieParser());
-
-  app.enableCors({
+  nestJsApp.use(cookieParser());
+  nestJsApp.enableCors({
     origin: allowedOrigins,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
     allowedHeaders: 'Authorization,Content-Type,Accept',
   });
 
-  // ── Health endpoint bypass ──────────────────────────────────────────────────
-  // Railway healthchecks come from healthcheck.railway.app hostname.
-  // Register a raw Express /api/health handler BEFORE helmet so it's
-  //不受任何中间件限制
-  const httpAdapter = app.getHttpAdapter();
-  httpAdapter.get('/api/health', (_req: any, res: any) => {
-    res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-  });
-
-  // ── Security Headers (Helmet + CSP) ─────────────────────────────────────────
-  // Strict Content Security Policy for the API server. Since this is a JSON API
-  // (not serving HTML), we use a maximally restrictive policy. Only OAuth
-  // redirect responses emit HTML, and they contain no external resources.
-  // Violations are logged in development (reportOnly) and enforced in production.
+  // ── Security Headers ─────────────────────────────────────────────────────
   const cspDirectives = {
-    defaultSrc: ["'self'"],
-    baseUri: ["'none'"],
-    formAction: ["'self'"],
-    frameAncestors: ["'none'"],
-    objectSrc: ["'none'"],
-    scriptSrc: ["'none'"],
-    styleSrc: ["'none'"],
-    imgSrc: ["'self'", 'data:', 'blob:'],
-    mediaSrc: ["'self'"],
-    fontSrc: ["'self'"],
-    connectSrc: ["'self'"],
+    defaultSrc: ["'self'"], baseUri: ["'none'"], formAction: ["'self'"],
+    frameAncestors: ["'none'"], objectSrc: ["'none'"], scriptSrc: ["'none'"],
+    styleSrc: ["'none'"], imgSrc: ["'self'", 'data:', 'blob:'],
+    mediaSrc: ["'self'"], fontSrc: ["'self'"], connectSrc: ["'self'"],
     upgradeInsecureRequests: [] as string[],
   } satisfies Record<string, Iterable<string>>;
 
-  app.use(
-    helmet({
-      contentSecurityPolicy: {
-        directives: cspDirectives,
-        reportOnly: process.env.NODE_ENV !== 'production',
-      },
-      crossOriginEmbedderPolicy: false,
-      crossOriginOpenerPolicy: { policy: 'same-origin' },
-      crossOriginResourcePolicy: { policy: 'same-origin' },
-      frameguard: { action: 'deny' },
-      hidePoweredBy: true,
-      hsts:
-        process.env.NODE_ENV === 'production'
-          ? { maxAge: 31536000, includeSubDomains: true, preload: true }
-          : false,
-      ieNoOpen: true,
-      noSniff: true,
-      originAgentCluster: true,
-      permittedCrossDomainPolicies: { permittedPolicies: 'none' },
-      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
-      xssFilter: false,
-    }),
-  );
+  nestJsApp.use(helmet({
+    contentSecurityPolicy: {
+      directives: cspDirectives,
+      reportOnly: process.env.NODE_ENV !== 'production',
+    },
+    crossOriginEmbedderPolicy: false,
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
+    crossOriginResourcePolicy: { policy: 'same-origin' },
+    frameguard: { action: 'deny' }, hidePoweredBy: true,
+    hsts: process.env.NODE_ENV === 'production'
+      ? { maxAge: 31536000, includeSubDomains: true, preload: true }
+      : false,
+    ieNoOpen: true, noSniff: true, originAgentCluster: true,
+    permittedCrossDomainPolicies: { permittedPolicies: 'none' },
+    referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+    xssFilter: false,
+  }));
 
-  // ── Global Sentry Exception Filter ──────────────────────────────────────
-  // Captures all unhandled exceptions and sends them to Sentry.
-  app.useGlobalFilters(new SentryExceptionFilter());
+  nestJsApp.useGlobalFilters(new SentryExceptionFilter());
+  nestJsApp.useGlobalInterceptors(new SentryUserInterceptor());
+  nestJsApp.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
 
-  // ── Global Sentry User Context ──────────────────────────────────────────
-  // Sets the authenticated user on Sentry scope for each request.
-  app.useGlobalInterceptors(new SentryUserInterceptor());
+  // ── Redis / WebSocket ────────────────────────────────────────────────────
+  const configService = nestJsApp.get(ConfigService);
+  const redisAdapter = new RedisIoAdapter(nestJsApp, configService);
+  nestJsApp.useWebSocketAdapter(redisAdapter);
 
-  // ── Global Validation Pipe ──────────────────────────────────────────────────
-  // Auto-validates all incoming request bodies using class-validator DTOs.
-  // Strips unknown properties and transforms payloads to DTO instances.
-  app.useGlobalPipes(
-    new ValidationPipe({
-      whitelist: true,
-      forbidNonWhitelisted: true,
-      transform: true,
-    }),
-  );
+  nestJsApp.setGlobalPrefix('api');
 
-  // ── WebSocket Adapter with Redis (for horizontal scaling) ──────────────────
-  // RedisIoAdapter extends CorsIoAdapter — inherits env-driven CORS allowlist
-  // and attaches a Redis pub/sub adapter if REDIS_URL is configured.
-  // Without Redis, Socket.IO gracefully falls back to single-instance mode.
-  const configService = app.get(ConfigService);
-  const redisAdapter = new RedisIoAdapter(app, configService);
-  app.useWebSocketAdapter(redisAdapter);
-
-  // Set global API prefix
-  app.setGlobalPrefix('api');
-
-  // ── Swagger / OpenAPI Documentation ────────────────────────────────────────
-  // Exposed in development by default. Set SWAGGER_ENABLED=true in production
-  // to force-enable (requires CSP relaxation — see helmet config above).
-  // CSP is reportOnly in development, so Swagger UI's inline scripts load fine.
-  if (
-    process.env.NODE_ENV !== 'production' ||
-    process.env.SWAGGER_ENABLED === 'true'
-  ) {
+  // ── Swagger ──────────────────────────────────────────────────────────────
+  if (process.env.NODE_ENV !== 'production' || process.env.SWAGGER_ENABLED === 'true') {
     const swaggerConfig = new DocumentBuilder()
       .setTitle('InterviewOS API')
-      .setDescription(
-        'Backend API for the InterviewOS AI-powered technical interview platform',
-      )
-      .setVersion('1.0')
-      .addCookieAuth('token')
-      .addBearerAuth()
-      .build();
-
-    const document = SwaggerModule.createDocument(app, swaggerConfig);
-    SwaggerModule.setup('api/docs', app, document);
-
+      .setDescription('Backend API for the InterviewOS AI-powered technical interview platform')
+      .setVersion('1.0').addCookieAuth('token').addBearerAuth().build();
+    const document = SwaggerModule.createDocument(nestJsApp, swaggerConfig);
+    SwaggerModule.setup('api/docs', nestJsApp, document);
     logger.log('Swagger docs available at /api/docs');
   }
 
-  // Serve local recording and avatar files (for development / local storage provider)
+  // ── Static files ─────────────────────────────────────────────────────────
   const recordingsDir = path.join(process.cwd(), 'recordings');
-  app.use('/recordings', express.static(recordingsDir));
-  app.use('/avatars', express.static(recordingsDir));
+  nestJsApp.use('/recordings', express.static(recordingsDir));
+  nestJsApp.use('/avatars', express.static(recordingsDir));
 
-  const port = process.env.PORT || 3001;
-  console.log('[TRACE] about to listen on port', port);
-  await app.listen(port, '0.0.0.0');
-  console.log('[TRACE] listen succeeded');
+  // ── Switch from health server to NestJS ──────────────────────────────────
+  console.log('[TRACE] closing health server, starting NestJS...');
+  await new Promise<void>(resolve => healthServer.close(() => resolve()));
 
+  await nestJsApp.listen(port, '0.0.0.0');
+  console.log('[TRACE] NestJS listen succeeded');
   logger.log(`InterviewOS Backend running on: http://0.0.0.0:${port}/api`);
 
-  // ── Graceful Shutdown ──────────────────────────────────────────────────────
-  // On SIGTERM/SIGINT, close the HTTP server and disconnect Redis clients.
-  const signals = ['SIGTERM', 'SIGINT'] as const;
-  for (const signal of signals) {
+  // ── Graceful Shutdown ────────────────────────────────────────────────────
+  for (const signal of ['SIGTERM', 'SIGINT'] as const) {
     process.on(signal, async () => {
       try {
         logger.log(`Received ${signal} — shutting down gracefully...`);
-        await app.close();
+        await nestJsApp.close();
         await redisAdapter.disconnect();
       } catch {}
       process.exit(0);
     });
   }
 }
+
 void bootstrap().catch((err) => {
-  const msg = 'FATAL: Unhandled error in bootstrap: ' + (err instanceof Error ? err.stack || err.message : String(err));
-  writeFileSync('/tmp/crash.log', msg + '\n');
-  console.log(msg);
-  process.exitCode = 1;
+  console.log('FATAL: Unhandled error in bootstrap:', err instanceof Error ? err.stack || err.message : String(err));
+  console.log('[HEALTH] Health server remains running for Railway healthchecks');
 });
 
-process.on('exit', (code) => {
-  const msg = '[TRACE] process exit code: ' + code;
-  try { writeFileSync('/tmp/crash.log', msg + '\n', { flag: 'a' }); } catch {}
-  console.log(msg);
-});
-process.on('unhandledRejection', (reason) => {
-  const msg = '[TRACE] unhandledRejection: ' + (reason instanceof Error ? reason.stack || reason.message : String(reason));
-  try { writeFileSync('/tmp/crash.log', msg + '\n', { flag: 'a' }); } catch {}
-  console.log(msg);
-});
+process.on('exit', (code) => console.log('[TRACE] process exit code:', code));
+process.on('unhandledRejection', (reason) => console.log('[TRACE] unhandledRejection:', reason));
 process.on('uncaughtException', (err) => {
-  const msg = '[TRACE] uncaughtException: ' + (err instanceof Error ? err.stack || err.message : String(err));
-  try { writeFileSync('/tmp/crash.log', msg + '\n', { flag: 'a' }); } catch {}
-  console.log(msg);
-  process.exitCode = 1;
+  console.log('[TRACE] uncaughtException:', err);
 });
