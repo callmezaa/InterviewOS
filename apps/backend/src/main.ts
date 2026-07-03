@@ -35,13 +35,19 @@ async function bootstrap() {
   let app;
   try {
     console.log('[TRACE] calling NestFactory.create');
-    app = await NestFactory.create(AppModule, {
-      rawBody: true,
-      logger: false,
-    });
+    const createTimeout = new Promise<void>((_, reject) =>
+      setTimeout(() => reject(new Error('TIMEOUT: NestFactory.create did not resolve within 30s')), 30000),
+    );
+    app = await Promise.race([
+      NestFactory.create(AppModule, {
+        rawBody: true,
+        logger: false,
+      }),
+      createTimeout,
+    ]);
     console.log('[TRACE] NestFactory.create succeeded');
   } catch (err) {
-    console.log('FATAL: Failed to create NestJS app:', err);
+    console.log('FATAL:', err instanceof Error ? err.stack || err.message : String(err));
     console.log('[TRACE] exiting in 1s...');
     await new Promise(r => setTimeout(r, 1000));
     process.exit(1);
@@ -214,9 +220,11 @@ async function bootstrap() {
   const signals = ['SIGTERM', 'SIGINT'] as const;
   for (const signal of signals) {
     process.on(signal, async () => {
-      logger.log(`Received ${signal} — shutting down gracefully...`);
-      await app.close();
-      await redisAdapter.disconnect();
+      try {
+        logger.log(`Received ${signal} — shutting down gracefully...`);
+        await app.close();
+        await redisAdapter.disconnect();
+      } catch {}
       process.exit(0);
     });
   }
