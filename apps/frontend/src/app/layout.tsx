@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { Suspense } from "react";
 import "./globals.css";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "../components/ui/Toaster";
@@ -73,7 +74,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col bg-surface-black text-white">
         <SkipLink />
-        <NavigationProgress />
+        <Suspense fallback={null}><NavigationProgress /></Suspense>
         <div aria-live="polite" aria-label="Application announcements" className="sr-only" role="status" />
         <MotionConfig reducedMotion="user">
           <PostHogProvider>
