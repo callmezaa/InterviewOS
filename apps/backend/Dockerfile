@@ -20,4 +20,4 @@ EXPOSE 3001
 
 USER root
 
-CMD ["node", "-e", "const {PrismaClient}=require('@prisma/client');const p=new PrismaClient();p.$connect().then(()=>{console.log('PRISMA-OK');return p.$disconnect();}).then(()=>{console.log('DONE');process.exit(0);}).catch(e=>{console.error('PRISMA-ERR:',e.message,e.stack);process.exit(1);})"]
+CMD ["sh", "-c", "cd apps/backend && node --trace-uncaught ../../apps/backend/dist/src/main.js 2>&1"]

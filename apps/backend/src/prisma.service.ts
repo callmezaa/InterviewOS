@@ -7,7 +7,9 @@ export class PrismaService
   implements OnModuleInit, OnModuleDestroy
 {
   async onModuleInit() {
+    console.log('[TRACE] PrismaService.onModuleInit — connecting...');
     await this.$connect();
+    console.log('[TRACE] PrismaService connected');
   }
 
   async onModuleDestroy() {
