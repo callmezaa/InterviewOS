@@ -15,7 +15,7 @@ import * as express from 'express';
 import * as path from 'path';
 import * as http from 'http';
 
-const port = process.env.PORT || 3001;
+const port = Number(process.env.PORT) || 3001;
 
 // ── Minimal health server (start BEFORE NestJS so Railway never sees a down) ─
 let nestJsApp: any = null;
