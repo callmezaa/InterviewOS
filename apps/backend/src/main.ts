@@ -50,15 +50,15 @@ async function bootstrap() {
 
   // ── NestJS Application ───────────────────────────────────────────────────
   try {
-    process._rawDebug('[TRACE] calling NestFactory.create');
+    (process as any)._rawDebug('[TRACE] calling NestFactory.create');
     nestJsApp = await NestFactory.create(AppModule, {
       rawBody: true,
       logger: false,
     });
-    process._rawDebug('[TRACE] NestFactory.create succeeded');
+    (process as any)._rawDebug('[TRACE] NestFactory.create succeeded');
   } catch (err) {
-    process._rawDebug('FATAL: Failed to create NestJS app:', err instanceof Error ? err.stack || err.message : String(err));
-    process._rawDebug('[TRACE] keeping health server alive to pass Railway healthchecks');
+    (process as any)._rawDebug('FATAL: Failed to create NestJS app:', err instanceof Error ? err.stack || err.message : String(err));
+    (process as any)._rawDebug('[TRACE] keeping health server alive to pass Railway healthchecks');
     return;  // Don't exit — health server keeps running
   }
 
@@ -161,17 +161,17 @@ async function bootstrap() {
 }
 
 void bootstrap().catch((err) => {
-  process._rawDebug('FATAL: Unhandled error in bootstrap:', err instanceof Error ? err.stack || err.message : String(err));
-  process._rawDebug('[HEALTH] Health server remains running for Railway healthchecks');
+  (process as any)._rawDebug('FATAL: Unhandled error in bootstrap:', err instanceof Error ? err.stack || err.message : String(err));
+  (process as any)._rawDebug('[HEALTH] Health server remains running for Railway healthchecks');
 });
 
 process.on('exit', (code) => {
-  process._rawDebug('[TRACE] process exit code:', code);
+  (process as any)._rawDebug('[TRACE] process exit code:', code);
 });
 process.on('unhandledRejection', (reason) => {
-  process._rawDebug('[TRACE] unhandledRejection:', reason instanceof Error ? reason.stack || reason.message : reason);
+  (process as any)._rawDebug('[TRACE] unhandledRejection:', reason instanceof Error ? reason.stack || reason.message : reason);
 });
 process.on('uncaughtException', (err) => {
-  process._rawDebug('[TRACE] uncaughtException:', err instanceof Error ? err.stack || err.message : err);
+  (process as any)._rawDebug('[TRACE] uncaughtException:', err instanceof Error ? err.stack || err.message : err);
   process.exitCode = 1;
 });
