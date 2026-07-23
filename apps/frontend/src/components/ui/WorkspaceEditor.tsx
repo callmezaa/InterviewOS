@@ -14,6 +14,7 @@ import { formatCode } from '../../lib/formatCode';
 import { generateTestDiagnostics } from '../../lib/testUtils';
 import { lintCode, type LintDiagnostic } from '../../lib/lintCode';
 import { toast } from '../../store/useToastStore';
+import { LanguageIcons } from './LanguageIcons';
 
 // Dynamic import to avoid SSR issues with Monaco
 const MonacoEditor = dynamic(
@@ -738,14 +739,19 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
               >
                 {(() => {
                   const cfg = LANG_CONFIG[activeFile?.language ?? language];
+                  const IconComponent = LanguageIcons[activeFile?.language ?? language];
                   return (
                     <>
-                      <span
-                        className="w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold leading-none shrink-0"
-                        style={{ backgroundColor: cfg?.color ?? '#888', color: '#000' }}
-                      >
-                        {cfg?.icon ?? '?'}
-                      </span>
+                      {IconComponent ? (
+                        <IconComponent className="w-4 h-4 shrink-0" />
+                      ) : (
+                        <span
+                          className="w-4 h-4 rounded flex items-center justify-center text-[8px] font-bold leading-none shrink-0"
+                          style={{ backgroundColor: cfg?.color ?? '#888', color: '#000' }}
+                        >
+                          {cfg?.icon ?? '?'}
+                        </span>
+                      )}
                       <span className="mr-1 hidden xs:inline">{cfg?.label ?? language}</span>
                       <ChevronRight className={`w-3 h-3 text-body-muted/50 transition-transform duration-150 ${langSelectorOpen ? 'rotate-90' : ''}`} />
                     </>
@@ -766,6 +772,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
                   {SUPPORTED_LANGUAGES.map((l, i) => {
                     const cfg = LANG_CONFIG[l.value];
                     const isActive = (activeFile?.language ?? language) === l.value;
+                    const IconComponent = LanguageIcons[l.value];
                     return (
                       <button
                         key={l.value}
@@ -774,12 +781,16 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
                           isActive ? 'bg-primary/10 text-white' : 'text-body-muted hover:bg-white/[0.04] hover:text-white'
                         } ${i > 0 ? 'border-t border-white/[0.04]' : ''}`}
                       >
-                        <span
-                          className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold leading-none shrink-0"
-                          style={{ backgroundColor: cfg?.color ?? '#888', color: '#000' }}
-                        >
-                          {cfg?.icon ?? '?'}
-                        </span>
+                        {IconComponent ? (
+                          <IconComponent className="w-5 h-5 shrink-0" />
+                        ) : (
+                          <span
+                            className="w-5 h-5 rounded flex items-center justify-center text-[9px] font-bold leading-none shrink-0"
+                            style={{ backgroundColor: cfg?.color ?? '#888', color: '#000' }}
+                          >
+                            {cfg?.icon ?? '?'}
+                          </span>
+                        )}
                         <span className="flex-1">{cfg?.label ?? l.value}</span>
                         {isActive && <span className="w-1.5 h-1.5 rounded-full bg-primary" />}
                       </button>
