@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState, useCallback, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { IlustrationCalendar } from '../ui/Illustrations';
 import { Tooltip } from '../ui/Tooltip';

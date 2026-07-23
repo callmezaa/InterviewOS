@@ -39,11 +39,11 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
   telemetry,
 }) => {
   return (
-    <div className="bg-surface-tile-2 border border-white/[0.06] rounded-lg overflow-hidden flex flex-col">
+    <div className="bg-surface-black border-t border-white/[0.06] overflow-hidden flex flex-col">
       {/* Console Header Tabs */}
       <div 
         onClick={() => setIsConsoleOpen(!isConsoleOpen)}
-        className="h-[38px] bg-surface-tile-3 border-b border-white/[0.06] px-4 flex items-center justify-between cursor-pointer select-none"
+        className="h-8 bg-surface-black border-b border-white/[0.06] px-3 flex items-center justify-between cursor-pointer select-none"
       >
         <div className="flex gap-4 h-full items-center" role="tablist">
           <motion.button
@@ -121,7 +121,7 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
           <motion.div
             key="console-body"
             initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 210, opacity: 1 }}
+            animate={{ height: 180, opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
@@ -129,7 +129,7 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
             <div
               role="tabpanel"
               id={`panel-console-${consoleTab}`}
-              className="h-[210px] bg-surface-black p-4 font-mono text-[12px] overflow-y-auto flex flex-col gap-1 leading-5 text-white/80"
+              className="h-[180px] bg-surface-black p-3 font-mono text-[11px] overflow-y-auto flex flex-col gap-1 leading-5 text-white/80"
             >
           {consoleTab === 'output' ? (
             /* Traditional Terminal Output View */

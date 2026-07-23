@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { RefreshCw, ChevronDown, LayoutDashboard, Terminal } from 'lucide-react';
 import Link from 'next/link';
 import { IlustrationError } from '../../components/ui/Illustrations';

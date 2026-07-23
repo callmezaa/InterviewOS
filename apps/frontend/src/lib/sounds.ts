@@ -52,10 +52,8 @@ export function playSuccess(volume = 0.3) {
   setTimeout(() => playTone({ frequency: 1100, duration: 0.15, type: 'sine', volume }), 100);
 }
 
-export function playError(volume = 0.3) {
-  resumeCtx();
-  playTone({ frequency: 300, duration: 0.2, type: 'square', volume: volume * 0.6 });
-  setTimeout(() => playTone({ frequency: 250, duration: 0.25, type: 'square', volume: volume * 0.5 }), 150);
+export function playError(_volume = 0.3) {
+  // ponytail: error sound removed — user found it annoying
 }
 
 export function playInfo(volume = 0.25) {

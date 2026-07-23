@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Trash2, XCircle, Link2, FileSpreadsheet, X } from 'lucide-react';
 import { Checkbox } from '../ui/Checkbox';
 
@@ -16,6 +16,8 @@ interface BulkActionBarProps {
   onCopyLinks: () => void;
   onExportCSV: () => void;
 }
+
+const btnClass = "inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-white/70 bg-white/[0.04] border border-white/[0.06] rounded-md hover:bg-white/[0.08] hover:text-white transition-all";
 
 export function BulkActionBar({
   selectedCount, totalCount, isAllSelected,
@@ -32,7 +34,7 @@ export function BulkActionBar({
       transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
       className="overflow-hidden"
     >
-      <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-primary/10 border border-primary/20 mb-4">
+      <div className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06] mb-4">
         <Checkbox
           checked={isAllSelected}
           indeterminate={!isAllSelected && selectedCount > 0}
@@ -46,31 +48,19 @@ export function BulkActionBar({
         <div className="h-4 w-px bg-white/[0.08]" />
 
         <div className="flex items-center gap-1.5">
-          <button
-            onClick={onDelete}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-red-400 bg-red-500/10 border border-red-500/20 rounded-md hover:bg-red-500/20 transition-all"
-          >
+          <button onClick={onDelete} className={btnClass}>
             <Trash2 className="w-3 h-3" />
             <span>Delete</span>
           </button>
-          <button
-            onClick={onCancel}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-md hover:bg-amber-500/20 transition-all"
-          >
+          <button onClick={onCancel} className={btnClass}>
             <XCircle className="w-3 h-3" />
             <span>Cancel</span>
           </button>
-          <button
-            onClick={onCopyLinks}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-primary-on-dark bg-primary/10 border border-primary/20 rounded-md hover:bg-primary/20 transition-all"
-          >
+          <button onClick={onCopyLinks} className={btnClass}>
             <Link2 className="w-3 h-3" />
             <span>Copy Links</span>
           </button>
-          <button
-            onClick={onExportCSV}
-            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-md hover:bg-emerald-500/20 transition-all"
-          >
+          <button onClick={onExportCSV} className={btnClass}>
             <FileSpreadsheet className="w-3 h-3" />
             <span>Export CSV</span>
           </button>

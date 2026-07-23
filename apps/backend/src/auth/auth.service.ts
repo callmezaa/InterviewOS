@@ -12,7 +12,7 @@ import { MailService } from '../mail/mail.service';
 import { MediaService } from '../media/media.service';
 import { ActivityService } from '../activity/activity.service';
 import * as bcrypt from 'bcrypt';
-import { Role, Plan, Session } from '@prisma/client';
+import { Role, Session } from '@prisma/client';
 import * as crypto from 'crypto';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
@@ -105,7 +105,6 @@ export class AuthService {
       email: updated.email,
       name: updated.name,
       role: updated.role,
-      plan: updated.plan,
       avatarUrl: updated.avatarUrl,
       twoFactorEnabled: updated.twoFactorEnabled,
     };
@@ -394,7 +393,6 @@ export class AuthService {
         user.id,
         user.email,
         user.role,
-        user.plan,
       );
 
       // Rotate session: create new, delete old
@@ -423,7 +421,6 @@ export class AuthService {
           email: user.email,
           name: user.name,
           role: user.role,
-          plan: user.plan,
           avatarUrl: user.avatarUrl || null,
           twoFactorEnabled: user.twoFactorEnabled,
         },
@@ -450,7 +447,6 @@ export class AuthService {
       user.id,
       user.email,
       user.role,
-      user.plan,
     );
 
     const session = await this.createSession(user.id, tokens.refreshToken, sessionMetadata);
@@ -469,7 +465,6 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        plan: user.plan,
         avatarUrl: user.avatarUrl || null,
         twoFactorEnabled: user.twoFactorEnabled,
       },
@@ -753,7 +748,6 @@ export class AuthService {
     id: string,
     email: string,
     role: string,
-    plan: Plan,
   ) {
     const payload = { sub: id, email, role };
     const accessToken = this.jwtService.sign(payload);
@@ -768,7 +762,6 @@ export class AuthService {
       email: string;
       name: string;
       role: string;
-      plan: Plan;
       avatarUrl?: string | null;
       twoFactorEnabled?: boolean;
     },
@@ -778,7 +771,6 @@ export class AuthService {
       user.id,
       user.email,
       user.role,
-      user.plan,
     );
 
     // Create session record for multi-session support
@@ -817,7 +809,6 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        plan: user.plan,
         avatarUrl: user.avatarUrl || null,
         twoFactorEnabled: user.twoFactorEnabled,
         branding: branding

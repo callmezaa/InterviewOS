@@ -68,7 +68,6 @@ export class OAuthService {
     email: string;
     name: string;
     role: string;
-    plan: string;
     avatarUrl?: string | null;
   }) {
     const payload = { sub: user.id, email: user.email, role: user.role };
@@ -107,7 +106,6 @@ export class OAuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        plan: user.plan,
         avatarUrl: user.avatarUrl || null,
         branding: branding
           ? { ...branding, isCustomized: true }

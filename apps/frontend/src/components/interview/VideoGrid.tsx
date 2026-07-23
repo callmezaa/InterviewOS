@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { Video, VideoOff, MicOff, Monitor, Loader2, AlertTriangle, Mic, Eye, EyeOff, PictureInPicture2, X } from 'lucide-react';
+import { Video, VideoOff, MicOff, Monitor, MonitorOff, Loader2, AlertTriangle, Mic, Eye, EyeOff, PictureInPicture2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card } from '../ui/Card';
 import { Tooltip } from '../ui/Tooltip';
@@ -92,85 +92,136 @@ export const VideoGrid: React.FC<VideoGridProps> = ({
   ), []);
 
   if (pipMode) {
+    const controlBtnClass = "flex items-center justify-center w-7 h-7 rounded-md transition-all duration-150";
+
     return (
-      <motion.div
-        drag
-        dragMomentum={false}
-        dragElastic={0}
-        className="fixed bottom-6 right-6 z-50 w-[160px] rounded-lg overflow-hidden shadow-2xl cursor-grab active:cursor-grabbing group"
-        style={{ aspectRatio: '1 / 1' }}
-        initial={{ scale: 0.8, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.8, opacity: 0, y: 20 }}
-        transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      >
-        {peer ? (
-          videoCard({
-            stream: peer.stream,
-            videoMuted: peer.videoMuted,
-            isLocal: false,
-            name: peer.userName,
-            audioMuted: peer.audioMuted,
-            isSpeaking: peer.isSpeaking,
-            isFocusLost: peer.isFocusLost,
-            isTabSwitched: peer.isTabSwitched,
-            className: 'w-full h-full border border-white/[0.12] rounded-lg',
-            noBadges: false,
-            overlayCorner: (
-              <div className="absolute bottom-3 right-3 z-20 w-[56px] rounded-md overflow-hidden border border-white/[0.15] shadow-lg bg-surface-black">
-                {!isLocalVideoMuted && showSelfVideo ? (
-                  <div className="aspect-[1/1] relative bg-black">
-                    {localStream && <VideoFeed stream={localStream} muted={true} isLocal={true} />}
+      <div className="flex flex-col gap-2 w-full">
+        {/* Local video (self) — top */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-lg overflow-hidden border border-white/[0.08] bg-surface-black aspect-square flex flex-col"
+        >
+          {/* Video area */}
+          <div className="flex-1 relative min-h-0">
+            {!isLocalVideoMuted && showSelfVideo ? (
+              <div className="absolute inset-0 bg-black">
+                {localStream && <VideoFeed stream={localStream} muted={true} isLocal={true} />}
+              </div>
+            ) : (
+              <div className="w-full h-full bg-surface-black flex flex-col items-center justify-center gap-1 text-white/20">
+                <VideoOff className="w-6 h-6" />
+                <span className="text-[10px] font-mono">Camera Off</span>
+              </div>
+            )}
+            {/* Speaking indicator */}
+            {isLocalSpeaking && !isLocalAudioMuted && (
+              <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            )}
+          </div>
+
+          {/* Control bar — always visible */}
+          <div className="flex items-center justify-between px-2 py-1.5 bg-black/60 border-t border-white/[0.06]">
+            <div className="flex items-center gap-1">
+              {/* Mic toggle */}
+              <button
+                onClick={onToggleAudio}
+                className={`${controlBtnClass} ${
+                  !isLocalAudioMuted
+                    ? 'bg-white/10 text-white hover:bg-white/20'
+                    : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                }`}
+                aria-label={!isLocalAudioMuted ? 'Mute microphone' : 'Unmute microphone'}
+              >
+                {!isLocalAudioMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* Camera toggle */}
+              <button
+                onClick={onToggleVideo}
+                className={`${controlBtnClass} ${
+                  !isLocalVideoMuted
+                    ? 'bg-white/10 text-white hover:bg-white/20'
+                    : 'bg-red-500/20 text-red-400 hover:bg-red-500/30'
+                }`}
+                aria-label={!isLocalVideoMuted ? 'Turn off camera' : 'Turn on camera'}
+              >
+                {!isLocalVideoMuted ? <Video className="w-3.5 h-3.5" /> : <VideoOff className="w-3.5 h-3.5" />}
+              </button>
+
+              {/* Screen share toggle */}
+              <button
+                onClick={onToggleScreenShare}
+                className={`${controlBtnClass} ${
+                  isScreenSharing
+                    ? 'bg-primary text-white hover:bg-primary-focus'
+                    : 'bg-white/10 text-white hover:bg-white/20'
+                }`}
+                aria-label={!isScreenSharing ? 'Share screen' : 'Stop sharing'}
+              >
+                {!isScreenSharing ? <Monitor className="w-3.5 h-3.5" /> : <MonitorOff className="w-3.5 h-3.5" />}
+              </button>
+            </div>
+
+            {/* Name + speaking */}
+            <div className="flex items-center gap-1.5 min-w-0">
+              <span className="text-[10px] font-medium text-white truncate">{user.name}</span>
+              <Waveform isActive={!isLocalAudioMuted && isLocalSpeaking} level={isLocalSpeaking ? 40 : 0} barCount={5} />
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Peer video — bottom */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3, delay: 0.1, ease: [0.22, 1, 0.36, 1] }}
+          className="relative rounded-lg overflow-hidden border border-white/[0.08] bg-surface-black aspect-square flex flex-col"
+        >
+          {/* Video area */}
+          <div className="flex-1 relative min-h-0">
+            {peer ? (
+              <>
+                {!peer.videoMuted ? (
+                  <div className="absolute inset-0 bg-black">
+                    {peer.stream && <VideoFeed stream={peer.stream} muted={false} isLocal={false} />}
                   </div>
                 ) : (
-                  <div className="aspect-[1/1] flex items-center justify-center bg-surface-black">
-                    <VideoOff className="w-3.5 h-3.5 text-white/20" />
+                  <div className="w-full h-full bg-surface-black flex flex-col items-center justify-center gap-1 text-white/20">
+                    <VideoOff className="w-6 h-6" />
+                    <span className="text-[10px] font-mono">Camera Off</span>
                   </div>
                 )}
+                {/* Speaking indicator */}
+                {peer.isSpeaking && !peer.audioMuted && (
+                  <div className="absolute top-2 left-2 w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                )}
+              </>
+            ) : (
+              <div className="w-full h-full bg-surface-black flex flex-col items-center justify-center gap-1 text-white/20">
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                <span className="text-[10px] font-mono">Waiting...</span>
               </div>
-            ),
-          })
-        ) : (
-          <div className="w-full h-full bg-surface-tile-2 border border-white/[0.12] rounded-lg flex flex-col items-center justify-center gap-2 text-body-muted/70">
-            <Loader2 className="w-5 h-5 animate-spin text-primary" />
-            <span className="text-[10px] font-mono">Waiting...</span>
+            )}
           </div>
-        )}
 
-        <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 p-1.5 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <Tooltip content={!isLocalAudioMuted ? 'Mute mic' : 'Unmute mic'} shortcut="M">
-            <button
-              onClick={onToggleAudio}
-              className={`p-1.5 rounded-full transition-all ${
-                !isLocalAudioMuted ? 'bg-primary text-white' : 'bg-danger/30 text-danger-soft'
-              }`}
-              aria-label={!isLocalAudioMuted ? 'Mute microphone' : 'Unmute microphone'}
-            >
-              {!isLocalAudioMuted ? <Mic className="w-3 h-3" /> : <MicOff className="w-3 h-3" />}
-            </button>
-          </Tooltip>
-          <Tooltip content={!isLocalVideoMuted ? 'Disable camera' : 'Enable camera'} shortcut="V">
-            <button
-              onClick={onToggleVideo}
-              className={`p-1.5 rounded-full transition-all ${
-                !isLocalVideoMuted ? 'bg-primary text-white' : 'bg-danger/30 text-danger-soft'
-              }`}
-              aria-label={!isLocalVideoMuted ? 'Disable camera' : 'Enable camera'}
-            >
-              {!isLocalVideoMuted ? <Video className="w-3 h-3" /> : <VideoOff className="w-3 h-3" />}
-            </button>
-          </Tooltip>
-          <Tooltip content="Exit PIP mode">
-            <button
-              onClick={onTogglePipMode}
-              className="p-1.5 rounded-full bg-white/10 text-white/80 hover:bg-white/20 transition-all"
-              aria-label="Exit picture-in-picture mode"
-            >
-              <X className="w-3 h-3" />
-            </button>
-          </Tooltip>
-        </div>
-      </motion.div>
+          {/* Info bar — display only */}
+          <div className="flex items-center justify-between px-2 py-1.5 bg-black/60 border-t border-white/[0.06]">
+            <div className="flex items-center gap-1.5 min-w-0">
+              {/* Peer status icons */}
+              <div className="flex items-center gap-1">
+                {peer?.audioMuted && <MicOff className="w-3 h-3 text-red-400/70" />}
+                {peer?.videoMuted && <VideoOff className="w-3 h-3 text-red-400/70" />}
+              </div>
+              <span className="text-[10px] font-medium text-white truncate">
+                {peer?.userName ?? 'Peer'}
+              </span>
+            </div>
+            <Waveform isActive={!!peer?.isSpeaking && !peer?.audioMuted} level={peer?.isSpeaking ? 40 : 0} barCount={5} />
+          </div>
+        </motion.div>
+      </div>
     );
   }
 

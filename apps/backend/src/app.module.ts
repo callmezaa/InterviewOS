@@ -11,7 +11,6 @@ import { InterviewModule } from './interview/interview.module';
 import { AiModule } from './ai/ai.module';
 import { MediaModule } from './media/media.module';
 import { WebRtcModule } from './webrtc/webrtc.module';
-import { BillingModule } from './billing/billing.module';
 import { QuestionsModule } from './questions/questions.module';
 import { TemplatesModule } from './templates/templates.module';
 import { BrandingModule } from './branding/branding.module';
@@ -97,7 +96,6 @@ import { ScheduleModule } from '@nestjs/schedule';
     AiModule,
     MediaModule,
     WebRtcModule,
-    BillingModule,
     QuestionsModule,
     TemplatesModule,
     BrandingModule,

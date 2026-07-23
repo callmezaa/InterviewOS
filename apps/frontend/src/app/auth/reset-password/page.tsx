@@ -3,7 +3,7 @@
 import React, { Suspense, useState, useId } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Lock, ArrowRight, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { toast } from '../../../store/useToastStore';
 import { AuthLayout } from '../../../components/auth/AuthLayout';
@@ -24,18 +24,18 @@ function ResetPasswordForm() {
 
   if (!token) {
     return (
-      <AuthLayout heading="Master Your Next Interview" subheading="Practice with AI-powered mock interviews.">
+      <AuthLayout>
         <div className="flex flex-col items-center gap-5 text-center py-4">
-          <ShieldCheck className="w-12 h-12 text-primary mx-auto" />
-          <div className="flex flex-col gap-2">
-            <h2 className="font-semibold text-h2 text-white">Invalid link</h2>
-            <p className="text-white/55 text-[14px] leading-relaxed">
+          <ShieldCheck className="w-10 h-10 text-primary mx-auto" />
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display font-bold text-[20px] text-white">Invalid link</h2>
+            <p className="text-[13px] text-white/50 leading-relaxed">
               This password reset link is missing or malformed. Please request a new one.
             </p>
           </div>
           <Link
             href="/auth/forgot-password"
-            className="text-[13px] text-primary hover:text-primary/80 transition-colors duration-200 font-medium underline underline-offset-2 mt-2"
+            className="text-[12px] text-white/40 hover:text-white/60 transition-colors"
           >
             Request new link
           </Link>
@@ -80,23 +80,20 @@ function ResetPasswordForm() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Connection failed.';
       toast.error('Reset failed', message);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <AuthLayout heading="Master Your Next Interview" subheading="Practice with AI-powered mock interviews.">
-      <div className="flex flex-col gap-2 mb-7">
-        <h2 className="font-semibold text-h1 text-white">Set new password</h2>
-        <p className="text-[14px] text-white/55 leading-relaxed">
-          Must be at least 8 characters.
-        </p>
-      </div>
+    <AuthLayout heading="Set new password">
+      <p className="text-[13px] text-white/50 leading-relaxed mb-6">
+        Must be at least 8 characters.
+      </p>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-5">
-        <div className="flex flex-col gap-2">
-          <label htmlFor={passwordId} className="text-[13px] text-white/50 font-medium">New Password</label>
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={passwordId} className="text-[12px] text-white/40 font-medium">
+            New Password
+          </label>
           <InputField
             id={passwordId}
             type="password"
@@ -104,12 +101,13 @@ function ResetPasswordForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="••••••••"
-            icon={Lock}
           />
         </div>
 
-        <div className="flex flex-col gap-2">
-          <label htmlFor="confirm-password" className="text-[13px] text-white/50 font-medium">Confirm Password</label>
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor="confirm-password" className="text-[12px] text-white/40 font-medium">
+            Confirm Password
+          </label>
           <InputField
             id="confirm-password"
             type="password"
@@ -117,28 +115,21 @@ function ResetPasswordForm() {
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
             placeholder="••••••••"
-            icon={Lock}
           />
         </div>
 
-        <Button
-          type="submit"
-          variant="primary"
-          disabled={loading}
-          className="w-full flex items-center justify-center gap-2 py-3 text-[15px] font-medium rounded-full"
-        >
-          <span>{loading ? 'Resetting...' : 'Reset Password'}</span>
-          {!loading && <ArrowRight className="w-4 h-4" />}
+        <Button type="submit" variant="default" disabled={loading} className="w-full mt-1">
+          {loading ? 'Resetting...' : 'Reset Password'}
         </Button>
       </form>
 
-      <div className="mt-7 pt-5 border-t border-white/[0.06] text-center">
+      <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
         <Link
           href="/auth/login"
-          className="flex items-center justify-center gap-1.5 text-[13px] text-white/55 hover:text-white/60 transition-colors duration-200 group"
+          className="inline-flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/60 transition-colors group"
         >
-          <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-          <span className="underline underline-offset-2">Back to Sign In</span>
+          <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" />
+          Back to Sign In
         </Link>
       </div>
     </AuthLayout>

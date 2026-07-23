@@ -18,22 +18,19 @@ export function OAuthButtons() {
   };
 
   return (
-    <div className="flex flex-col gap-5 w-full">
-      {/* Divider */}
+    <div className="flex flex-col gap-3 w-full">
       <div className="flex items-center gap-3">
-        <span className="flex-1 h-px bg-white/[0.05]" />
-        <span className="text-[12px] text-white/40 font-normal">or continue with</span>
-        <span className="flex-1 h-px bg-white/[0.05]" />
+        <span className="flex-1 h-px bg-white/[0.06]" />
+        <span className="text-[12px] text-white/30">or</span>
+        <span className="flex-1 h-px bg-white/[0.06]" />
       </div>
 
-      {/* OAuth buttons — full width stacked */}
-      <div className="flex flex-col gap-2.5">
-        {/* Google */}
+      <div className="flex flex-col gap-2">
         <button
           type="button"
           onClick={handleGoogle}
           disabled={googleLoading}
-          className="group flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-md border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 text-[14px] text-white/55 hover:text-white/75 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.99]"
+          className="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-lg border border-white/[0.08] text-[13px] text-white/50 hover:text-white/70 hover:border-white/[0.15] hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {googleLoading ? (
             <span className="w-4 h-4 border-2 border-white/15 border-t-white/50 rounded-full animate-spin" />
@@ -48,12 +45,11 @@ export function OAuthButtons() {
           <span>Continue with Google</span>
         </button>
 
-        {/* GitHub */}
         <button
           type="button"
           onClick={handleGitHub}
           disabled={githubLoading}
-          className="group flex items-center justify-center gap-2.5 w-full py-3 px-4 rounded-md border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05] hover:border-white/[0.12] transition-all duration-200 text-[14px] text-white/55 hover:text-white/75 disabled:opacity-40 disabled:cursor-not-allowed active:scale-[0.99]"
+          className="flex items-center justify-center gap-2.5 w-full py-2.5 px-4 rounded-lg border border-white/[0.08] text-[13px] text-white/50 hover:text-white/70 hover:border-white/[0.15] hover:bg-white/[0.03] transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {githubLoading ? (
             <span className="w-4 h-4 border-2 border-white/15 border-t-white/50 rounded-full animate-spin" />

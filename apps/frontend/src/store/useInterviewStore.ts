@@ -7,7 +7,6 @@ export interface UserSession {
   email: string;
   name: string;
   role: 'INTERVIEWER' | 'CANDIDATE';
-  plan?: 'FREE' | 'PRO' | 'TEAM' | 'ENTERPRISE';
   avatarUrl?: string | null;
   twoFactorEnabled?: boolean;
   branding?: BrandSettings;
@@ -82,6 +81,10 @@ interface InterviewState {
   setUser: (user: UserSession | null) => void;
   logout: () => void;
 
+  // Dashboard mode (local override — no API call)
+  dashboardMode: 'INTERVIEWER' | 'CANDIDATE';
+  setDashboardMode: (mode: 'INTERVIEWER' | 'CANDIDATE') => void;
+
   // Active Interview Room State
   activeInterview: InterviewDetails | null;
   setActiveInterview: (details: InterviewDetails) => void;
@@ -152,6 +155,7 @@ interface InterviewState {
 
 export const useInterviewStore = create<InterviewState>((set) => {
   let initialUser = null;
+  let initialMode: 'INTERVIEWER' | 'CANDIDATE' = 'INTERVIEWER';
 
   if (typeof window !== 'undefined') {
     try {
@@ -166,14 +170,36 @@ export const useInterviewStore = create<InterviewState>((set) => {
     } catch {
       // localStorage unavailable (SSR, test environment, private browsing)
     }
+
+    try {
+      const m = localStorage.getItem('dashboard-mode');
+      if (m === 'INTERVIEWER' || m === 'CANDIDATE') {
+        initialMode = m;
+      } else if (initialUser?.role) {
+        initialMode = initialUser.role;
+      }
+    } catch {}
   }
 
   return {
     user: initialUser,
+    dashboardMode: initialMode,
+    setDashboardMode: (dashboardMode) => {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('dashboard-mode', dashboardMode);
+      }
+      set({ dashboardMode });
+    },
     setUser: (user) => {
       if (typeof window !== 'undefined') {
         if (user) {
           localStorage.setItem('user', JSON.stringify(user));
+          const m = localStorage.getItem('dashboard-mode');
+          if (!m) {
+            localStorage.setItem('dashboard-mode', user.role);
+            set({ user, dashboardMode: user.role });
+            return;
+          }
         } else {
           localStorage.removeItem('user');
         }
@@ -183,6 +209,7 @@ export const useInterviewStore = create<InterviewState>((set) => {
   logout: () => {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user');
+      localStorage.removeItem('dashboard-mode');
     }
     set({
       user: null,

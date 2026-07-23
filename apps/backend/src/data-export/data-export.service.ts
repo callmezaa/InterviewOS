@@ -72,7 +72,6 @@ export class DataExportService {
         email: user.email,
         name: user.name,
         role: user.role,
-        plan: user.plan,
         avatarUrl: user.avatarUrl,
         emailVerified: user.emailVerified,
         provider: user.provider,

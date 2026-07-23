@@ -8,82 +8,7 @@ import { useActionHistory } from '../store/useActionHistoryStore';
 import { API_URL } from '../lib/config';
 import { authFetch } from '../lib/authFetch';
 import { fetchTemplate } from '../lib/templates';
-import { isGuest } from '../lib/guest';
 
-const DEMO_INTERVIEWS: InterviewDetails[] = [
-  {
-    id: 'demo_system_design_lead',
-    title: 'System Design — Distributed Cache Layer',
-    description: 'Evaluating candidate\'s ability to design a horizontally-scalable Redis-based caching strategy with TTL invalidation policies.',
-    candidateEmail: 'alex.chen@techcorp.io',
-    status: 'COMPLETED',
-    scheduledTime: new Date(Date.now() - 5 * 86_400_000).toISOString(),
-    codeContent: '// Redis Cache Strategy\nconst cache = new RedisClient({ host: process.env.REDIS_HOST });',
-    language: 'typescript',
-    transcript: [
-      { speakerName: 'Interviewer', text: 'Walk me through how you would handle cache invalidation at scale.', timestamp: '09:02' },
-    ],
-    codeHistory: [],
-    feedback: { score: 92, technicalRating: 4.9, communicationRating: 4.5, summary: 'Exceptional architectural understanding.', detailedReview: '### Strengths\n- Correctly identified write-through vs write-behind tradeoffs.' },
-  },
-  {
-    id: 'demo_react_perf_audit',
-    title: 'React Performance & Bundle Optimization',
-    description: 'Deep-dive into code-splitting, memoization patterns, and React 18 concurrent rendering features.',
-    candidateEmail: 'priya.sharma@frontend.dev',
-    status: 'COMPLETED',
-    scheduledTime: new Date(Date.now() - 2 * 86_400_000).toISOString(),
-    codeContent: 'import { memo, useDeferredValue, useTransition } from \'react\';',
-    language: 'typescript',
-    transcript: [],
-    codeHistory: [],
-    feedback: { score: 78, technicalRating: 4.1, communicationRating: 4.6, summary: 'Strong conceptual grasp of React 18 concurrency.', detailedReview: '### Strengths\n- Correctly used useDeferredValue vs debounce.' },
-  },
-  {
-    id: 'demo_node_stream_live',
-    title: 'Node.js Streams & Backpressure Handling',
-    description: 'Live coding: build a transform stream pipeline with proper backpressure signaling for large CSV exports.',
-    candidateEmail: 'jordan.lee@backend.io',
-    status: 'ACTIVE',
-    scheduledTime: new Date().toISOString(),
-    codeContent: 'const { Transform } = require(\'stream\');',
-    language: 'javascript',
-    transcript: [],
-  },
-  {
-    id: 'demo_algo_graphs',
-    title: 'Graph Algorithms — Shortest Path',
-    description: 'Dijkstra vs A* tradeoffs, then implement a BFS-based shortest path on a weighted adjacency list.',
-    candidateEmail: 'maya.okonkwo@algos.dev',
-    status: 'SCHEDULED',
-    scheduledTime: new Date(Date.now() + 1 * 86_400_000).toISOString(),
-    codeContent: '// Collaborative workspace initialized\n',
-    language: 'python',
-    transcript: [],
-  },
-  {
-    id: 'demo_db_query_opt',
-    title: 'PostgreSQL Query Optimization Sprint',
-    description: 'Analyze slow query logs, rewrite using CTEs, partial indexes, and EXPLAIN ANALYZE profiling.',
-    candidateEmail: 'sam.rivera@dbcraft.io',
-    status: 'SCHEDULED',
-    scheduledTime: new Date(Date.now() + 3 * 86_400_000).toISOString(),
-    codeContent: '-- Initial query stub\nSELECT * FROM user_events WHERE created_at > NOW() - INTERVAL \'30 days\';',
-    language: 'sql',
-    transcript: [],
-  },
-  {
-    id: 'demo_ml_infra',
-    title: 'ML Inference Infrastructure Design',
-    description: 'Reviewing model serving pipeline: batching, ONNX runtime, GPU utilization, and latency SLAs.',
-    candidateEmail: 'nina.volkov@mlops.ai',
-    status: 'SCHEDULED',
-    scheduledTime: new Date(Date.now() + 6 * 86_400_000).toISOString(),
-    codeContent: '# ML Inference stub\nimport onnxruntime as ort\n',
-    language: 'python',
-    transcript: [],
-  },
-];
 
 export function useDashboard() {
   const router = useRouter();
@@ -112,7 +37,6 @@ export function useDashboard() {
   const [showTour, setShowTour] = useState(false);
 
   const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [demoLoading, setDemoLoading] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
@@ -180,10 +104,8 @@ export function useDashboard() {
     if (mounted && !user) router.push('/auth/login');
   }, [mounted, user, router]);
 
-  const isGuestUser = isGuest(user);
-
   useEffect(() => {
-    if (!user || isGuestUser) return;
+    if (!user) return;
     if (typeof window !== 'undefined') {
       const onboardingDone = localStorage.getItem('onboarding_complete');
       const tourDone = localStorage.getItem('tour_complete');
@@ -199,13 +121,6 @@ export function useDashboard() {
   }, [user]);
 
   const fetchInterviews = useCallback(async () => {
-    if (isGuestUser) {
-      setLoading(true);
-      await new Promise((r) => setTimeout(r, 600));
-      setInterviews(DEMO_INTERVIEWS);
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     try {
       const response = await authFetch(`${API_URL}/interviews`, {});
@@ -218,19 +133,11 @@ export function useDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [isGuestUser]);
+  }, []);
 
   useEffect(() => {
     fetchInterviews();
   }, [fetchInterviews]);
-
-  const loadDemoData = useCallback(async () => {
-    setDemoLoading(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setInterviews(DEMO_INTERVIEWS);
-    setDemoLoading(false);
-    toast.success('Demo data loaded', '6 rich interview sessions added — explore the full dashboard experience.');
-  }, []);
 
   const handleCopyLink = useCallback((e: React.MouseEvent, interviewId: string) => {
     e.stopPropagation();
@@ -446,14 +353,12 @@ export function useDashboard() {
     showOnboarding,
     showTour,
     copiedId,
-    demoLoading,
     searchQuery, setSearchQuery,
     statusFilter, setStatusFilter,
     filteredInterviews,
     interviewerStats,
     interviewCounts,
     fetchInterviews,
-    loadDemoData,
     handleCopyLink,
     handleOnboardingComplete,
     handleSchedule,

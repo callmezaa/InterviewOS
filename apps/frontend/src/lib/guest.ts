@@ -7,7 +7,6 @@ export function createGuestUser(): UserSession {
     email: 'guest@tryinterviewos.com',
     name: 'Guest Explorer',
     role: 'CANDIDATE',
-    plan: 'FREE',
     isGuest: true,
   };
 }

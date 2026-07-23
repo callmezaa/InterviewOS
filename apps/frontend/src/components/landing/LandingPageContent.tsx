@@ -1,16 +1,16 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { Terminal } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useMotionValueEvent } from 'motion/react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { ScrollReveal } from '../ui/ScrollReveal';
+import { TextReveal } from '../motion/text-reveal';
 import { useActiveSection } from '../../hooks/useActiveSection';
 
-// ── Dynamic imports for below-fold sections ────────────────────────────────
 const InteractiveShowcase = dynamic(
   () => import('../ui/InteractiveShowcase').then((m) => m.InteractiveShowcase),
   { ssr: false }
@@ -45,24 +45,43 @@ const FeatureCard = dynamic(
 );
 
 export default function LandingPageContent() {
-  const activeSection = useActiveSection(['features', 'how-it-works', 'testimonials', 'pricing', 'faq']);
+  const activeSection = useActiveSection(['features', 'how-it-works', 'testimonials', 'get-started', 'faq']);
+  const { scrollY } = useScroll();
+  const [scrolled, setScrolled] = useState(false);
+
+  useMotionValueEvent(scrollY, 'change', (y) => {
+    setScrolled(y > 80);
+  });
 
   return (
     <div className="flex flex-col min-h-screen bg-surface-black text-white selection:bg-primary selection:text-white">
       {/* Global Navigation */}
-      <header className="sticky top-0 z-50 h-14 bg-surface-black flex items-center justify-between px-6 md:px-12">
-        {/* Left: Brand */}
-        <div className="flex items-center gap-2.5 select-none">
-          <Terminal className="w-5 h-5 text-primary" />
-          <span className="font-display font-semibold text-[15px] tracking-tight">InterviewOS</span>
-        </div>
+      <header
+        className={`sticky top-0 z-50 h-14 flex items-center justify-between px-6 md:px-12 transition-all duration-500 ${
+          scrolled
+            ? 'bg-surface-black/80 backdrop-blur-md border-b border-white/[0.06]'
+            : 'bg-surface-black/0'
+        }`}
+      >
+        <Link href="/" className="flex items-center gap-2.5 select-none group/logo">
+          <Image
+            src="/logo/logo_white.png"
+            alt="InterviewOS"
+            width={28}
+            height={28}
+            className="block shrink-0"
+            priority
+          />
+          <span className="font-display font-semibold text-[15px] tracking-tight text-white/90 group-hover/logo:text-white transition-colors duration-200">
+            InterviewOS
+          </span>
+        </Link>
 
-        {/* Center: Navigation Links */}
-        <nav className="hidden md:flex items-center justify-center gap-8 text-[13px] font-medium select-none">
+        <nav className="hidden md:flex items-center justify-center gap-8 select-none">
           {([
             { label: 'Features',    href: '#features',     id: 'features' },
             { label: 'How it works', href: '#how-it-works', id: 'how-it-works' },
-            { label: 'Pricing',      href: '#pricing',      id: 'pricing' },
+            { label: 'Get Started',  href: '#get-started',  id: 'get-started' },
             { label: 'FAQ',          href: '#faq',          id: 'faq' },
           ] as const).map(({ label, href, id }) => {
             const isActive = activeSection === id;
@@ -70,19 +89,23 @@ export default function LandingPageContent() {
               <a
                 key={id}
                 href={href}
-                className={`transition-colors duration-200 ${
-                  isActive ? 'text-white' : 'text-white/40 hover:text-white/70'
-                }`}
+                className="relative text-[13px] font-medium text-white/40 hover:text-white transition-colors duration-300 group/link"
               >
                 {label}
+                <span
+                  className={`absolute -bottom-1 left-1/2 -translate-x-1/2 h-px bg-white transition-all duration-300 ${
+                    isActive
+                      ? 'w-full opacity-100'
+                      : 'w-0 opacity-0 group-hover/link:w-full group-hover/link:opacity-60'
+                  }`}
+                />
               </a>
             );
           })}
         </nav>
 
-        {/* Right: Sign In */}
         <Link href="/auth/login">
-          <Button variant="ghost">
+          <Button variant="ghost" size="sm">
             Sign In
           </Button>
         </Link>
@@ -90,10 +113,9 @@ export default function LandingPageContent() {
 
       <main className="flex-1 flex flex-col">
         {/* Hero */}
-        <section className="flex-1 flex flex-col items-center justify-center text-center px-6 py-section min-h-[85vh] relative overflow-hidden bg-surface-black">
-          
+        <section className="relative flex-1 flex flex-col items-center justify-center text-center px-6 py-section min-h-[85vh] overflow-hidden bg-surface-black">
           <motion.div
-            className="max-w-[860px] flex flex-col items-center gap-5"
+            className="max-w-[860px] flex flex-col items-center gap-5 relative z-10"
             initial="hidden"
             animate="visible"
             variants={{
@@ -101,17 +123,20 @@ export default function LandingPageContent() {
               visible: { transition: { staggerChildren: 0.13, delayChildren: 0.1 } },
             }}
           >
-            {/* Headline */}
             <motion.div
-              className="overflow-hidden"
               variants={{
                 hidden: { opacity: 0, y: 40 },
                 visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
               }}
             >
-              <span className="block font-display font-semibold text-[46px] sm:text-[66px] leading-[1.05] tracking-[-0.04em] text-white">
-                The OS for
-              </span>
+              <TextReveal
+                text="The OS for"
+                as="span"
+                stagger={0.05}
+                blur={8}
+                yOffset="30%"
+                className="block font-display font-bold text-[46px] sm:text-[66px] leading-[1.05] tracking-[-0.04em] text-white"
+              />
             </motion.div>
 
             <motion.div
@@ -121,12 +146,11 @@ export default function LandingPageContent() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } },
               }}
             >
-              <h1 className="font-display font-semibold text-[46px] sm:text-[66px] leading-[1.05] tracking-[-0.04em] text-white/85">
+              <h1 className="font-display font-bold text-[46px] sm:text-[66px] leading-[1.05] tracking-[-0.04em] text-white/85">
                 technical interviews.
               </h1>
             </motion.div>
 
-            {/* Subheading */}
             <motion.p
               className="max-w-[540px] text-[17px] sm:text-[19px] font-normal leading-[1.55] text-body-muted/60 tracking-[-0.01em] mt-1"
               variants={{
@@ -137,7 +161,6 @@ export default function LandingPageContent() {
               Combining WebRTC video calls, synchronized code editors, and live Whisper-transcription loops.
             </motion.p>
 
-            {/* CTA Buttons */}
             <motion.div
               className="flex flex-col sm:flex-row items-center gap-6 mt-6"
               variants={{
@@ -145,23 +168,20 @@ export default function LandingPageContent() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
               }}
             >
-              <div className="relative group/cta">
-                <Link href="/auth/login">
-                  <Button variant="primary" className="w-[180px]">
-                    Get Started
-                  </Button>
-                </Link>
-              </div>
+              <Link href="/auth/login">
+                <Button variant="default" size="lg" className="w-[180px]">
+                  Get Started
+                </Button>
+              </Link>
 
               <Link href="/auth/login" className="group/learn text-primary-on-dark flex items-center gap-1.5 font-sans text-[17px] tracking-tight hover:text-white transition-colors duration-200">
                 Learn more
-                <span className="text-[15px] transition-transform duration-300 ease-out transform group-hover/learn:translate-x-1.5">
+                <span className="inline-block text-[15px] transition-transform duration-300 ease-out group-hover/learn:translate-x-1.5">
                   →
                 </span>
               </Link>
             </motion.div>
 
-            {/* Terminal Copy Box */}
             <motion.div
               className="flex flex-col items-center gap-2 mt-2"
               variants={{
@@ -184,8 +204,8 @@ export default function LandingPageContent() {
         {/* Features */}
         <section id="features" className="bg-surface-black py-section px-6 md:px-section-x">
           <div className="max-w-[1100px] mx-auto text-center mb-16 flex flex-col items-center gap-3">
-            <Badge>Features</Badge>
-            <h2 className="font-display font-semibold text-[32px] sm:text-[40px] leading-tight tracking-tight text-white">
+            <Badge variant="secondary">Features</Badge>
+            <h2 className="font-display font-bold text-[32px] sm:text-[40px] leading-tight tracking-tight text-white">
               Everything you need for tech hiring
             </h2>
           </div>

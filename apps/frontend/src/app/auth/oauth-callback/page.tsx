@@ -49,13 +49,13 @@ function OAuthCallbackContent() {
       {status === 'processing' && (
         <>
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-[14px] text-white/55">Completing authentication...</p>
+          <p className="text-[13px] text-white/50">Completing authentication...</p>
         </>
       )}
       {status === 'success' && (
         <>
           <CheckCircle className="w-8 h-8 text-emerald-400" />
-          <p className="text-[14px] text-emerald-400/70">Signed in successfully! Redirecting...</p>
+          <p className="text-[13px] text-emerald-400/70">Signed in successfully! Redirecting...</p>
         </>
       )}
       {status === 'error' && (
@@ -63,10 +63,10 @@ function OAuthCallbackContent() {
           <div className="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/15 flex items-center justify-center">
             <span className="text-red-400 text-lg font-medium">!</span>
           </div>
-          <p className="text-[14px] text-red-400/70 text-center max-w-xs">{errorMessage}</p>
+          <p className="text-[13px] text-red-400/70 text-center max-w-xs">{errorMessage}</p>
           <button
             onClick={() => router.push('/auth/login')}
-            className="text-[13px] text-primary hover:text-primary/80 transition-colors duration-200 underline underline-offset-2"
+            className="text-[12px] text-white/40 hover:text-white/60 transition-colors"
           >
             Back to Sign In
           </button>
@@ -78,11 +78,11 @@ function OAuthCallbackContent() {
 
 export default function OAuthCallbackPage() {
   return (
-    <AuthLayout heading="Master Your Next Interview" subheading="Practice with AI-powered mock interviews.">
+    <AuthLayout>
       <Suspense fallback={
         <div className="flex flex-col items-center justify-center gap-5 py-8">
           <Loader2 className="w-8 h-8 text-primary animate-spin" />
-          <p className="text-[14px] text-white/55">Loading...</p>
+          <p className="text-[13px] text-white/50">Loading...</p>
         </div>
       }>
         <OAuthCallbackContent />

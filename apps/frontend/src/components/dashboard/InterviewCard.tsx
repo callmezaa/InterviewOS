@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Video, Link2, Check, FileText, CalendarPlus, Repeat } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { Card } from '../ui/Card';

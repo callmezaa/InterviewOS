@@ -2,9 +2,10 @@
 
 import React, { Suspense, useState, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, ChevronDown, LayoutPanelLeft, Sparkles } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, ChevronDown, LayoutPanelLeft, Sparkles, Search } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { Header } from '../../components/ui/Header';
+import { useInterviewStore } from '../../store/useInterviewStore';
 import { SkeletonCard } from '../../components/ui/SkeletonCard';
 import { DashboardSkeleton } from '../../components/dashboard/DashboardSkeleton';
 import { OnboardingModal } from '../../components/ui/OnboardingModal';
@@ -19,16 +20,14 @@ import { ScheduleForm } from '../../components/dashboard/ScheduleForm';
 import { ActivityFeed } from '../../components/dashboard/ActivityFeed';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog';
 import { SignUpPrompt } from '../../components/ui/SignUpPrompt';
-import { DemoBanner } from '../../components/dashboard/DemoBanner';
 import { useDashboard } from '../../hooks/useDashboard';
-import { ContextualHints } from '../../components/ui/ContextualHints';
+
 import { ErrorBoundary } from '../../components/ui/ErrorBoundary';
 import { GuidedTour, INTERVIEWER_TOUR, CANDIDATE_TOUR } from '../../components/ui/GuidedTour';
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { api } from '../../lib/api';
 import { toast } from '../../store/useToastStore';
 import { useActionHistory } from '../../store/useActionHistoryStore';
-import { isGuest } from '../../lib/guest';
 
 const getGreeting = () => {
   const h = new Date().getHours();
@@ -58,7 +57,7 @@ function Dashboard() {
     selectedReview, setSelectedReview,
     showOnboarding, showTour,
     handleTourComplete,
-    copiedId, demoLoading,
+    copiedId,
     searchQuery, setSearchQuery,
     statusFilter, setStatusFilter,
     interviews,
@@ -66,15 +65,12 @@ function Dashboard() {
     interviewerStats,
     interviewCounts,
     fetchInterviews,
-    loadDemoData,
     handleCopyLink,
     handleOnboardingComplete,
     handleSchedule,
     handleStartRoom,
     selectReviewSession,
     handleClearFilters,
-    templateId,
-    clearTemplate,
     setInterviews,
     recurrenceEnabled, setRecurrenceEnabled,
     recurrenceFrequency, setRecurrenceFrequency,
@@ -82,6 +78,7 @@ function Dashboard() {
   } = useDashboard();
 
   const router = useRouter();
+  const dashboardMode = useInterviewStore((s) => s.dashboardMode);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [confirmAction, setConfirmAction] = useState<{ type: 'delete' | 'cancel'; ids: string[] } | null>(null);
@@ -199,14 +196,8 @@ function Dashboard() {
   }, [confirmAction, interviews]);
 
   const handleScheduleWrapper = useCallback((e: React.FormEvent) => {
-    if (isGuest(user)) {
-      setSignUpFeature('Schedule new interviews');
-      setShowSignUpPrompt(true);
-      e.preventDefault();
-      return;
-    }
     handleSchedule(e);
-  }, [user, handleSchedule]);
+  }, [handleSchedule]);
 
   const handleBulkCopyLinks = useCallback(async () => {
     if (selectedIds.length === 0) return;
@@ -309,19 +300,6 @@ function Dashboard() {
     { def: { id: 'dash-delete-selected', key: 'Delete', label: 'Del', description: '', category: '', scope: 'dashboard', isInputProtected: true }, handler: () => { if (selectedIds.length > 0) handleBulkDelete(); } },
   ], mounted && !!user);
 
-  // Gentle conversion toast for guest users after 30s
-  useEffect(() => {
-    if (!isGuest(user)) return;
-    const timer = setTimeout(() => {
-      toast.info(
-        'Enjoying the demo?',
-        'Create your free account in 30 seconds to save your progress.',
-        { action: { label: 'Sign Up', onClick: () => router.push('/auth/register') } },
-      );
-    }, 30000);
-    return () => clearTimeout(timer);
-  }, [user, router]);
-
   if (!mounted) {
     return <DashboardSkeleton />;
   }
@@ -330,13 +308,7 @@ function Dashboard() {
 
   return (
     <div className="min-h-screen bg-surface-black text-white flex flex-col font-sans selection:bg-primary">
-      <Header subTitle="Your Interview Workspace" />
-
-      {isGuest(user) && (
-        <div className="max-w-[1440px] w-full mx-auto px-4 sm:px-6 lg:px-12 pt-3 sm:pt-4">
-          <DemoBanner />
-        </div>
-      )}
+      <Header />
 
       <main id="main-content" className="flex-1 max-w-[1440px] w-full mx-auto p-4 sm:p-6 lg:p-12 flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
         <div className="flex-1 flex flex-col gap-6">
@@ -354,10 +326,7 @@ function Dashboard() {
               </p>
 
               <div className="relative flex-1 max-w-[260px]">
-                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-body-muted/50 pointer-events-none" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.5"/>
-                  <line x1="10.5" y1="10.5" x2="14" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-body-muted/50 pointer-events-none" />
                 <input
                   type="text"
                   data-search-input
@@ -370,20 +339,20 @@ function Dashboard() {
               </div>
             </div>
 
-            {user.role === 'INTERVIEWER' && !loading && (
+            {dashboardMode === 'INTERVIEWER' && !loading && (
               <div className="flex items-center gap-3 shrink-0">
-                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 border border-primary/20">
-                  <span className="text-[11px] font-mono font-semibold text-primary-on-dark/60">AI Readiness</span>
-                  <span className="text-[18px] font-bold font-display text-primary-on-dark leading-none">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                  <span className="text-[11px] font-mono font-semibold text-body-muted/60">AI Readiness</span>
+                  <span className="text-[18px] font-bold font-display text-white leading-none">
                     {interviewerStats.withFeedback > 0 ? interviewerStats.avgScore : '—'}
-                    {interviewerStats.withFeedback > 0 && <span className="text-[11px] text-primary-on-dark/50">%</span>}
+                    {interviewerStats.withFeedback > 0 && <span className="text-[11px] text-white/50">%</span>}
                   </span>
                 </div>
               </div>
             )}
           </motion.div>
 
-          {user.role === 'INTERVIEWER' && !loading && (
+          {dashboardMode === 'INTERVIEWER' && !loading && (
             <ErrorBoundary name="DashboardMetrics">
               <DashboardMetrics stats={interviewerStats} />
             </ErrorBoundary>
@@ -408,15 +377,15 @@ function Dashboard() {
           />
 
           {/* Next upcoming interview */}
-          {user.role === 'INTERVIEWER' && !loading && interviews.length > 0 && (() => {
+          {dashboardMode === 'INTERVIEWER' && !loading && interviews.length > 0 && (() => {
             const upcoming = [...interviews]
               .filter(i => i.status === 'SCHEDULED')
               .sort((a, b) => new Date(a.scheduledTime).getTime() - new Date(b.scheduledTime).getTime())[0];
             if (!upcoming) return null;
             return (
-              <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-primary/5 border border-primary/15">
+              <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-white/[0.02] border border-white/[0.06]">
                 <div className="w-1.5 h-1.5 rounded-full bg-primary-on-dark shrink-0" />
-                <span className="text-[12px] text-primary-on-dark/70 font-medium">Up next:</span>
+                <span className="text-[12px] text-white/70 font-medium">Up next:</span>
                 <span className="text-[13px] text-white font-medium">{upcoming.title}</span>
                 <span className="text-[11px] text-body-muted/50 font-mono">
                   {new Date(upcoming.scheduledTime).toLocaleDateString()} @ {new Date(upcoming.scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -426,18 +395,13 @@ function Dashboard() {
           })()}
 
           {/* FAB — Schedule New */}
-          {user.role === 'INTERVIEWER' && !loading && interviews.length > 0 && (
+          {dashboardMode === 'INTERVIEWER' && !loading && interviews.length > 0 && (
             <button
               onClick={() => {
-                if (isGuest(user)) {
-                  setSignUpFeature('Schedule new interviews');
-                  setShowSignUpPrompt(true);
-                  return;
-                }
                 const form = document.getElementById('schedule-form');
                 form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
               }}
-              className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-focus transition-all shadow-lg shadow-primary/25 focus:outline-none focus:ring-2 focus:ring-primary/50"
+              className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2.5 rounded-lg bg-primary text-white text-[13px] font-semibold hover:bg-primary-focus transition-all focus:outline-none focus:ring-2 focus:ring-primary/50"
               aria-label="Schedule new interview"
             >
               <svg className="w-4 h-4" width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -468,20 +432,13 @@ function Dashboard() {
                     filteredInterviews={filteredInterviews}
                     searchQuery={searchQuery}
                     statusFilter={statusFilter}
-                    userRole={user.role as 'INTERVIEWER' | 'CANDIDATE'}
-                    demoLoading={demoLoading}
-                    onLoadDemo={loadDemoData}
+                    userRole={dashboardMode}
                     onCopyLink={handleCopyLink}
                     onStartRoom={handleStartRoom}
                     onSelectReview={selectReviewSession}
                     copiedId={copiedId}
                     onClearFilters={handleClearFilters}
                     onSchedule={() => {
-                      if (isGuest(user)) {
-                        setSignUpFeature('Schedule new interviews');
-                        setShowSignUpPrompt(true);
-                        return;
-                      }
                       const form = document.getElementById('schedule-form');
                       form?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
@@ -551,7 +508,7 @@ function Dashboard() {
             <ErrorBoundary name="AIFeedbackPanel">
               <AIFeedbackPanel interview={selectedReview} onClose={() => setSelectedReview(null)} />
             </ErrorBoundary>
-          ) : user.role === 'INTERVIEWER' ? (
+          ) : dashboardMode === 'INTERVIEWER' ? (
             <div data-tour="schedule-form">
               <ScheduleForm
                 title={title}
@@ -564,8 +521,6 @@ function Dashboard() {
                 onScheduledTimeChange={setScheduledTime}
                 submitting={submitting}
                 onSubmit={handleScheduleWrapper}
-                templateId={templateId}
-                onClearTemplate={clearTemplate}
                 recurrenceEnabled={recurrenceEnabled}
                 onRecurrenceToggle={setRecurrenceEnabled}
                 recurrenceFrequency={recurrenceFrequency}
@@ -596,7 +551,7 @@ function Dashboard() {
         {showOnboarding && user && (
           <OnboardingModal
             userName={user.name}
-            userRole={user.role}
+            userRole={dashboardMode}
             onComplete={handleOnboardingComplete}
           />
         )}
@@ -605,18 +560,13 @@ function Dashboard() {
       <AnimatePresence>
         {showTour && user && (
           <GuidedTour
-            steps={user.role === 'INTERVIEWER' ? INTERVIEWER_TOUR : CANDIDATE_TOUR}
+            steps={dashboardMode === 'INTERVIEWER' ? INTERVIEWER_TOUR : CANDIDATE_TOUR}
             onComplete={handleTourComplete}
             onSkip={handleTourComplete}
-            role={user.role as 'INTERVIEWER' | 'CANDIDATE'}
+            role={dashboardMode}
           />
         )}
       </AnimatePresence>
-
-      <ContextualHints
-        userRole={user.role as 'INTERVIEWER' | 'CANDIDATE'}
-        hasInterviews={interviews.length > 0}
-      />
 
       <ConfirmDialog
         isOpen={confirmAction?.type === 'delete'}

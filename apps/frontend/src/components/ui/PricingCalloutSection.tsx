@@ -2,22 +2,22 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import { motion, useInView } from 'framer-motion';
-import { ArrowRight, CheckCircle2, CreditCard, ShieldCheck } from 'lucide-react';
+import { motion, useInView } from 'motion/react';
+import { ArrowRight, CheckCircle2, Zap, ShieldCheck } from 'lucide-react';
 import { Button } from './Button';
 import { Badge } from './Badge';
 
 const CALLOUT_POINTS = [
   {
-    label: 'No credit card',
-    icon: CreditCard,
+    label: 'Realtime collaboration',
+    icon: Zap,
   },
   {
-    label: 'Team-ready beta access',
+    label: 'Team-ready platform',
     icon: CheckCircle2,
   },
   {
-    label: 'Secure interview workspace',
+    label: 'Secure workspace',
     icon: ShieldCheck,
   },
 ];
@@ -28,7 +28,7 @@ export function PricingCalloutSection() {
 
   return (
     <section
-      id="pricing"
+      id="get-started"
       ref={ref}
       className="scroll-mt-20 bg-surface-black px-6 py-section md:px-section-x"
     >
@@ -47,14 +47,14 @@ export function PricingCalloutSection() {
 
           <div className="relative z-10 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_auto] lg:items-center">
               <div className="flex max-w-[700px] flex-col gap-5">
-                  <Badge variant="default">Free to start</Badge>
+                  <Badge variant="default">Get Started Free</Badge>
 
                   <div className="flex flex-col gap-3">
                     <h2 className="font-display text-[30px] font-semibold leading-tight tracking-tight text-white sm:text-[40px]">
-                      Free during beta. No credit card.
+                      Start interviewing in minutes.
                     </h2>
                 <p className="max-w-[560px] font-sans text-[15px] leading-relaxed tracking-tight text-body-muted/55 sm:text-[16px]">
-                  Run real engineering interviews with video, code playback, transcripts, and AI-assisted evaluation while your team validates the workflow.
+                  Run real engineering interviews with video, code playback, transcripts, and AI-assisted evaluation.
                 </p>
               </div>
 
@@ -77,15 +77,12 @@ export function PricingCalloutSection() {
             <div className="flex flex-col items-start gap-3 lg:items-end">
               <div className="relative group/btn">
                 <Link href="/auth/login">
-                  <Button variant="primary" className="h-11 w-[176px] gap-2 text-[14px]">
-                    Start free
+                  <Button variant="default" className="h-11 w-[176px] gap-2 text-[14px]">
+                    Get started
                     <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover/btn:translate-x-0.5" />
                   </Button>
                 </Link>
               </div>
-              <p className="max-w-[220px] font-mono text-[11px] leading-relaxed tracking-tight text-white/25 lg:text-right">
-                Paid plans come later for growing hiring teams.
-              </p>
             </div>
           </div>
         </motion.div>

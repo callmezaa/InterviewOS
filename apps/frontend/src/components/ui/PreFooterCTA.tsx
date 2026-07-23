@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView } from 'motion/react';
 import Link from 'next/link';
 import { Button } from './Button';
 import { Badge } from './Badge';
@@ -36,7 +36,7 @@ export function PreFooterCTA() {
           {/* Call-to-action button wrapper */}
           <div className="relative group/btn mt-4">
             <Link href="/auth/login">
-              <Button variant="primary" className="w-[200px] h-12 text-[15px] font-sans flex items-center justify-center gap-1.5">
+              <Button variant="default" size="lg" className="w-[200px] text-[15px] font-sans flex items-center justify-center gap-1.5">
                 Get Started Free 
                 <span className="text-[16px] transition-transform duration-300 ease-out transform group-hover/btn:translate-x-1.5">
                   →

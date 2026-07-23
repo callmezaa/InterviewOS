@@ -1,67 +1,63 @@
-import React from 'react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { mergeProps } from "@base-ui/react/merge-props"
+import { useRender } from "@base-ui/react/use-render"
+import { cva, type VariantProps } from "class-variance-authority"
 
-const badgeVariants = {
-  default:
-    'bg-white/[0.02] border border-white/[0.06] text-primary-on-dark/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]',
-  primary:
-    'bg-primary/10 border border-primary/20 text-primary-on-dark',
-  success:
-    'bg-success/10 border border-success/20 text-success-soft',
-  warning:
-    'bg-warning/10 border border-warning/20 text-warning-soft',
-  danger:
-    'bg-danger/10 border border-danger/20 text-danger-soft',
-  neutral:
-    'bg-white/[0.04] border border-white/[0.06] text-white/60',
-  solid:
-    'bg-primary text-on-primary-solid',
-} as const;
+import { cn } from "@/lib/utils"
 
-const badgeSizes = {
-  sm: 'px-1.5 py-0.5 text-[9px] font-mono',
-  md: 'px-2.5 py-0.5 text-[11px] font-mono',
-  lg: 'px-3 py-1 text-[11px] font-mono',
-} as const;
+const badgeVariants = cva(
+  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  {
+    variants: {
+      variant: {
+        default: "bg-primary text-primary-foreground [a]:hover:bg-primary/80",
+        secondary:
+          "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
+        destructive:
+          "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
+        outline:
+          "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
+        ghost:
+          "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
+        link: "text-primary underline-offset-4 hover:underline",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
 
-const dotColors: Record<string, string> = {
-  default: 'bg-primary-on-dark/50',
-  primary: 'bg-primary-on-dark',
-  success: 'bg-success-soft',
-  warning: 'bg-warning-soft',
-  danger: 'bg-danger-soft',
-  neutral: 'bg-white/60',
-  solid: 'bg-white',
-};
-
-export interface BadgeProps {
-  variant?: keyof typeof badgeVariants;
-  size?: keyof typeof badgeSizes;
+function Badge({
+  className,
+  variant = "default",
+  dot,
+  dotColor,
+  render,
+  children,
+  ...props
+}: useRender.ComponentProps<"span"> & VariantProps<typeof badgeVariants> & {
   dot?: boolean;
   dotColor?: string;
-  className?: string;
-  children: React.ReactNode;
+}) {
+  const dotElement = dot ? (
+    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", dotColor ?? "bg-current")} />
+  ) : null;
+
+  return useRender({
+    defaultTagName: "span",
+    props: mergeProps<"span">(
+      {
+        className: cn(badgeVariants({ variant }), className),
+        children: dotElement ? <>{dotElement}{children}</> : children,
+      },
+      props
+    ),
+    render,
+    state: {
+      slot: "badge",
+      variant,
+    },
+  })
 }
 
-export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps & React.HTMLAttributes<HTMLSpanElement>>(
-  ({ className, variant = 'default', size = 'md', dot, dotColor, children, ...props }, ref) => {
-    const baseStyle = 'inline-flex items-center gap-1.5 rounded-pill font-semibold tracking-tight leading-none';
-
-    return (
-      <span
-        ref={ref}
-        className={twMerge(clsx(baseStyle, badgeVariants[variant], badgeSizes[size], className))}
-        {...props}
-      >
-        {dot && (
-          <span
-            className={clsx('w-1.5 h-1.5 rounded-full shrink-0', dotColor || dotColors[variant])}
-          />
-        )}
-        {children}
-      </span>
-    );
-  }
-);
-Badge.displayName = 'Badge';
+export { Badge, badgeVariants }

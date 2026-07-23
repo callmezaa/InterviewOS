@@ -65,7 +65,7 @@
     { "value": "650px", "reason": "CTA section max-width" },
     { "value": "600px", "reason": "Hero content max-width" },
     { "value": "580px", "reason": "Command palette max-width" },
-    { "value": "560px", "reason": "Pricing section max-width" },
+
     { "value": "540px", "reason": "Hero section max-width" },
     { "value": "520px", "reason": "Modal max-width (onboarding)" },
     { "value": "500px", "reason": "Error section width" },
@@ -88,7 +88,7 @@
     { "value": "210px", "reason": "Console panel height" },
     { "value": "200px", "reason": "Widget min height" },
     { "value": "180px", "reason": "Skeleton / editor height" },
-    { "value": "176px", "reason": "Pricing card height" },
+
     { "value": "160px", "reason": "Illustration / error image height" },
     { "value": "150px", "reason": "Candidate portal avatar height" },
     { "value": "140px", "reason": "Empty state illustration height" },
@@ -118,7 +118,7 @@
     { "value": "36px", "reason": "Stat number / interactive showcase size" },
     { "value": "34px", "reason": "FAQ heading / score number size" },
     { "value": "32px", "reason": "Heading / spacing.xl" },
-    { "value": "30px", "reason": "Pricing list spacing" },
+
     { "value": "28px", "reason": "Display heading / spacing.xxl" },
     { "value": "26px", "reason": "Auth heading size" },
     { "value": "24px", "reason": "Section heading / spacing.lg" },
@@ -143,7 +143,7 @@
     { "value": "0.002", "reason": "Calendar gradient start" },
     { "value": "0.005", "reason": "Candidate portal tile background" },
     { "value": "0.01", "reason": "Nearly invisible bg tint" },
-    { "value": "0.015", "reason": "Pricing section bg tint" },
+
     { "value": "0.02", "reason": "Subtle bg tint" },
     { "value": "0.025", "reason": "Scroll progress / terminal bg tint" },
     { "value": "0.03", "reason": "Light bg tint" },
@@ -183,7 +183,7 @@
     { "value": "0.5s", "reason": "Metric/progress entrance" },
     { "value": "0.55s", "reason": "Landing badge entrance" },
     { "value": "0.6s", "reason": "Scroll reveal entrance" },
-    { "value": "0.65s", "reason": "Pricing card entrance" },
+
     { "value": "0.7s", "reason": "Hero title entrance" },
     { "value": "0.8s", "reason": "Scroll reveal (passed)" },
     { "value": "0.9s", "reason": "Score bar animation" },

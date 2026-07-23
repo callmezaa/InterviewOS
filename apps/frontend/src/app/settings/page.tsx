@@ -22,7 +22,7 @@ import { IntegrationSettings } from '../../components/settings/IntegrationSettin
 import { useShortcuts } from '../../hooks/useShortcuts';
 import { 
   User, Mail, Globe, Bell, Save, ArrowLeft, Check, Loader2, Shield, Lock,
-  Sparkles, CreditCard, ExternalLink, Palette, Terminal, Plug, Monitor
+  Sparkles, Palette, Terminal, Plug, Monitor
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { API_URL } from '../../lib/config';
@@ -35,11 +35,10 @@ export default function SettingsPage() {
   // Settings States
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [role, setRole] = useState<'CANDIDATE' | 'INTERVIEWER'>('CANDIDATE');
   const [defaultLanguage, setDefaultLanguage] = useState<'javascript' | 'python' | 'typescript'>('javascript');
   
   const [isSaving, setIsSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'billing' | 'branding' | 'security' | 'sessions' | 'integrations'>('profile');
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'notifications' | 'branding' | 'security' | 'sessions' | 'integrations'>('profile');
 
   // ── Command Palette action dispatcher ──────────────────────────────────────
   useEffect(() => {
@@ -69,7 +68,6 @@ export default function SettingsPage() {
     if (user) {
       setName(user.name || '');
       setEmail(user.email || '');
-      setRole((user.role as 'CANDIDATE' | 'INTERVIEWER') || 'CANDIDATE');
     }
     
     // Load local storage preferences if present
@@ -97,7 +95,6 @@ export default function SettingsPage() {
     // Snapshot previous values for undo
     const prevName = user.name;
     const prevEmail = user.email;
-    const prevRole = user.role;
     const prevLang = typeof window !== 'undefined' ? localStorage.getItem('pref_lang') : null;
 
     setIsSaving(true);
@@ -110,7 +107,6 @@ export default function SettingsPage() {
         body: JSON.stringify({
           name: name.trim(),
           email: email.trim(),
-          role,
         }),
       });
 
@@ -123,9 +119,8 @@ export default function SettingsPage() {
       // Update store with server response
       setUser({
         ...user,
-        name: data.name,
-        email: data.email,
-        role: data.role,
+        name: data.name ?? user.name,
+        email: data.email ?? user.email,
       });
 
       // Persist local settings
@@ -143,18 +138,17 @@ export default function SettingsPage() {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ name: prevName, email: prevEmail, role: prevRole }),
+            body: JSON.stringify({ name: prevName, email: prevEmail }),
           });
           if (!res.ok) throw new Error('Undo failed');
           const d = await res.json();
-          setUser({ ...user, name: d.name, email: d.email, role: d.role });
+          setUser({ ...user, name: d.name, email: d.email });
           if (typeof window !== 'undefined') {
             if (prevLang) localStorage.setItem('pref_lang', prevLang);
             else localStorage.removeItem('pref_lang');
           }
           setName(prevName);
           setEmail(prevEmail);
-          setRole(prevRole);
         },
       });
     } catch (err: unknown) {
@@ -230,18 +224,6 @@ export default function SettingsPage() {
             >
               <Bell className="w-4 h-4" />
               <span>Notifications</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('billing')}
-              className={`w-full px-3.5 py-2.5 rounded-lg text-[13px] font-medium flex items-center gap-2.5 transition-all ${
-                activeTab === 'billing'
-                  ? 'bg-primary text-white font-semibold'
-                  : 'text-body-muted/60 hover:text-white hover:bg-white/[0.02]'
-              }`}
-            >
-              <CreditCard className="w-4 h-4" />
-              <span>Billing</span>
             </button>
 
             <button
@@ -350,27 +332,6 @@ export default function SettingsPage() {
                     />
                   </div>
 
-                  {/* Role toggle */}
-                  <div className="flex flex-col gap-2 border-t border-white/[0.06] pt-4 mt-2">
-                    <span className="text-[11px] font-semibold text-body-muted/50">Account Role</span>
-                    <div className="grid grid-cols-2 gap-1.5 p-1 rounded-lg border border-white/[0.06] bg-white/[0.02] max-w-[280px]">
-                      {(['CANDIDATE', 'INTERVIEWER'] as const).map((r) => (
-                        <button
-                          key={r}
-                          type="button"
-                          onClick={() => setRole(r)}
-                          className={`py-2 text-[12px] rounded-md font-medium transition-all duration-200 ${
-                            role === r
-                              ? 'bg-white/[0.06] text-white border border-primary/15'
-                              : 'text-body-muted/50 hover:text-white/70 hover:bg-white/[0.03]'
-                          }`}
-                        >
-                          {r.charAt(0) + r.slice(1).toLowerCase()}
-                        </button>
-                      ))}
-                    </div>
-                    <span className="text-[10px] text-body-muted/40">Switch between candidate and interviewer mode. Change anytime.</span>
-                  </div>
                 </Card>
               </motion.div>
             )}
@@ -475,11 +436,6 @@ export default function SettingsPage() {
               </motion.div>
             )}
 
-            {/* billing Tab */}
-            {activeTab === 'billing' && (
-              <BillingTab />
-            )}
-
             {/* Branding Tab */}
             {activeTab === 'branding' && (
               <BrandingTab />
@@ -509,7 +465,7 @@ export default function SettingsPage() {
             )}
             </AnimatePresence>
 
-            {activeTab !== 'billing' && activeTab !== 'security' && activeTab !== 'sessions' && activeTab !== 'integrations' && (
+            {activeTab !== 'security' && activeTab !== 'sessions' && activeTab !== 'integrations' && (
               <div className="flex items-center justify-end mt-4 border-t border-white/[0.06] pt-6 gap-3">
                 <Button
                   type="button"
@@ -543,240 +499,11 @@ export default function SettingsPage() {
   );
 }
 
-/* ── Billing Tab ──────────────────────────────────────────── */
-
-function BillingTab() {
-  const { user } = useInterviewStore();
-  const [loading, setLoading] = useState<'checkout' | 'portal' | null>(null);
-  const [subscription, setSubscription] = useState<{
-    plan: string;
-    billingInterval: string | null;
-    subscriptionStatus: string | null;
-    currentPeriodEnd: string | null;
-    trialEndsAt: string | null;
-  } | null>(null);
-  const [fetching, setFetching] = useState(true);
-
-  const planLabels: Record<string, string> = {
-    FREE: 'Free',
-    PRO: 'Pro',
-    TEAM: 'Team',
-    ENTERPRISE: 'Enterprise',
-  };
-
-  const planColors: Record<string, string> = {
-    FREE: 'text-body-muted/60',
-    PRO: 'text-primary-on-dark',
-    TEAM: 'text-purple-400',
-    ENTERPRISE: 'text-amber-400',
-  };
-
-  useEffect(() => {
-    const fetchSubscription = async () => {
-      try {
-        const res = await fetch(`${API_URL}/billing/subscription`, {
-          credentials: 'include',
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSubscription(data);
-        }
-      } catch {
-      } finally {
-        setFetching(false);
-      }
-    };
-    fetchSubscription();
-  }, []);
-
-  const handleUpgrade = async (interval: 'monthly' | 'yearly' = 'monthly') => {
-    setLoading('checkout');
-    try {
-      const res = await fetch(`${API_URL}/billing/create-checkout-session`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ plan: 'PRO', interval }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  const handlePortal = async () => {
-    setLoading('portal');
-    try {
-      const res = await fetch(`${API_URL}/billing/create-portal-session`, {
-        method: 'POST',
-        credentials: 'include',
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } catch {
-    } finally {
-      setLoading(null);
-    }
-  };
-
-  if (fetching) {
-    return (
-      <div className="flex items-center justify-center py-16">
-        <Loader2 className="w-6 h-6 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  const isPaid = subscription?.plan && subscription.plan !== 'FREE';
-  const intervalLabel =
-    subscription?.billingInterval === 'yearly' ? 'Yearly' : 'Monthly';
-
-  return (
-    <motion.div
-      key="billing"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className="flex flex-col gap-4"
-    >
-      <div className="flex flex-col gap-1.5">
-        <h3 className="font-display font-semibold text-[20px] text-white">Billing & Plan</h3>
-        <p className="text-[12px] text-body-muted/50">Manage your subscription and billing details.</p>
-      </div>
-
-      <Card variant="default" className="p-6 flex flex-col gap-5">
-        {!user ? (
-          <p className="text-[14px] text-body-muted/60">Sign in to manage your subscription.</p>
-        ) : (
-          <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-[12px] font-semibold text-body-muted/60 mb-1">Current Plan</p>
-                <div className="flex items-center gap-2">
-                  <span className={`text-[24px] font-bold tracking-tight ${planColors[subscription?.plan || 'FREE'] || 'text-white'}`}>
-                    {planLabels[subscription?.plan || 'FREE'] || subscription?.plan || 'Free'}
-                  </span>
-                  {isPaid && (
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                      subscription?.subscriptionStatus === 'active'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                    }`}>
-                      {subscription?.subscriptionStatus === 'active' ? 'Active' : subscription?.subscriptionStatus || 'Unknown'}
-                    </span>
-                  )}
-                </div>
-                {isPaid && (
-                  <div className="flex items-center gap-1.5 mt-1">
-                    <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                      intervalLabel === 'Yearly'
-                        ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-                        : 'bg-primary/10 text-primary-on-dark border border-primary/20'
-                    }`}>
-                      {intervalLabel}
-                    </span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {isPaid && subscription?.currentPeriodEnd && (
-              <div className="text-[12px] text-body-muted/50">
-                Current period ends:{' '}
-                {new Date(subscription.currentPeriodEnd).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </div>
-            )}
-
-            {subscription?.trialEndsAt && new Date(subscription.trialEndsAt) > new Date() && (
-              <div className="text-[12px] text-amber-400/70">
-                Trial ends:{' '}
-                {new Date(subscription.trialEndsAt).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
-              </div>
-            )}
-
-            <div className="border-t border-white/[0.06] pt-4 flex flex-col gap-3">
-              {isPaid ? (
-                <Button
-                  variant="secondary"
-                  disabled={loading === 'portal'}
-                  onClick={handlePortal}
-                  className="w-full flex items-center justify-center gap-2"
-                >
-                  {loading === 'portal' ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ExternalLink className="w-4 h-4" />
-                  )}
-                  <span>Manage Subscription</span>
-                </Button>
-              ) : (
-                <>
-                  <p className="text-[13px] text-body-muted/60 leading-relaxed">
-                    Upgrade to Pro for unlimited interviews, advanced AI analysis, and more.
-                  </p>
-                  <div className="flex gap-3">
-                    <div className="flex-1 flex gap-2">
-                      <Button
-                        variant="secondary"
-                        disabled={loading === 'checkout'}
-                        onClick={() => handleUpgrade('monthly')}
-                        className="flex-1 flex items-center justify-center gap-2"
-                      >
-                        {loading === 'checkout' ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : null}
-                        <span>Monthly</span>
-                      </Button>
-                      <Button
-                        variant="primary"
-                        disabled={loading === 'checkout'}
-                        onClick={() => handleUpgrade('yearly')}
-                        className="flex-1 flex items-center justify-center gap-2"
-                      >
-                        {loading === 'checkout' ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
-                        ) : (
-                          <Sparkles className="w-4 h-4" />
-                        )}
-                        <span>Yearly</span>
-                        <span className="text-[10px] bg-white/15 text-white px-1.5 py-0.5 rounded-full">Save</span>
-                      </Button>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      onClick={() => window.location.href = '/pricing'}
-                      className="flex items-center gap-1.5"
-                    >
-                      <span>View Plans</span>
-                    </Button>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-      </Card>
-    </motion.div>
-  );
-}
-
 /* ── Branding Tab ─────────────────────────────────────────── */
 
 function BrandingTab() {
   const { user, setUser } = useInterviewStore();
   const branding = user?.branding;
-  const isEnterprise = user?.plan === 'ENTERPRISE';
 
   const [brandName, setBrandName] = useState(branding?.name || '');
   const [brandLogoUrl, setBrandLogoUrl] = useState(branding?.logoUrl || '');
@@ -834,37 +561,6 @@ function BrandingTab() {
       setSaving(false);
     }
   };
-
-  if (!isEnterprise) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 8 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col gap-6"
-      >
-        <Card variant="default" className="p-6 border border-white/[0.06]">
-          <div className="flex flex-col items-center text-center gap-4 py-8">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-              <Palette className="w-5 h-5 text-amber-400" />
-            </div>
-            <div>
-              <h3 className="text-[15px] font-semibold text-white mb-1">Enterprise Feature</h3>
-              <p className="text-[13px] text-body-muted/60 max-w-sm">
-                Custom branding and theme builder are available on the Enterprise plan. White-label your interview platform with your company logo, colors, and name.
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              onClick={() => window.location.href = 'mailto:sales@interviewos.app?subject=Enterprise Branding Inquiry'}
-              className="text-[13px]"
-            >
-              Contact Sales
-            </Button>
-          </div>
-        </Card>
-      </motion.div>
-    );
-  }
 
   return (
     <motion.div

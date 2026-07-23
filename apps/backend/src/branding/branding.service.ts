@@ -1,11 +1,9 @@
 import {
   Injectable,
   NotFoundException,
-  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { UpdateBrandingDto } from './dto/update-branding.dto';
-import { Plan } from '@prisma/client';
 import type { Prisma } from '@prisma/client';
 
 @Injectable()
@@ -15,7 +13,7 @@ export class BrandingService {
   async getBranding(userId: string) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { organizationId: true, plan: true },
+      select: { organizationId: true },
     });
 
     if (!user?.organizationId) {
@@ -60,15 +58,10 @@ export class BrandingService {
   async updateBranding(userId: string, dto: UpdateBrandingDto) {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { organizationId: true, plan: true },
+      select: { organizationId: true },
     });
 
     if (!user) throw new NotFoundException('User not found');
-    if (user.plan !== Plan.ENTERPRISE) {
-      throw new ForbiddenException(
-        'Custom branding is available on the Enterprise plan.',
-      );
-    }
 
     const updateData: Prisma.OrganizationUpdateInput = {};
     if (dto.name !== undefined) updateData.name = dto.name;

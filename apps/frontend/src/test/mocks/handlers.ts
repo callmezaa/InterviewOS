@@ -86,10 +86,6 @@ export const handlers = [
     });
   }),
 
-  http.post('/api/billing/create-checkout-session', () => {
-    return HttpResponse.json({ url: 'https://checkout.stripe.com/mock' });
-  }),
-
   http.get('/api/notifications', () => {
     return HttpResponse.json([]);
   }),
@@ -112,14 +108,6 @@ export const handlers = [
   http.get('/api/webrtc/ice-config', () => {
     return HttpResponse.json({
       iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
-    });
-  }),
-
-  http.get('/api/billing/subscription', () => {
-    return HttpResponse.json({
-      plan: 'FREE',
-      status: 'active',
-      trialEndsAt: null,
     });
   }),
 ];

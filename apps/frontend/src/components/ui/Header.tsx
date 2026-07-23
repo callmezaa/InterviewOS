@@ -7,8 +7,8 @@ import { useInterviewStore } from '../../store/useInterviewStore';
 import { useCommandPalette } from '../../store/useCommandPaletteStore';
 import { useBranding } from '../providers/BrandingProvider';
 import { isGuest } from '../../lib/guest';
-import { LogOut, Terminal, User, ChevronDown, ShieldCheck, Award, Settings, Command, Sparkles, LogIn } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { LogOut, Terminal, User, ChevronDown, ShieldCheck, Award, Settings, Command, Sparkles, LogIn, FileText, LifeBuoy, BarChart3, Users } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { ThemeToggle } from './ThemeToggle';
 import { ConfirmDialog } from './ConfirmDialog';
@@ -24,9 +24,10 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({ subTitle, subActions }) => {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, logout } = useInterviewStore();
+  const { user, logout, dashboardMode, setDashboardMode } = useInterviewStore();
   const branding = useBranding();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
@@ -81,80 +82,55 @@ export const Header: React.FC<HeaderProps> = ({ subTitle, subActions }) => {
           </button>
           </Tooltip>
 
-          <Link href="/dashboard" className="flex items-center gap-2 font-display font-semibold text-[14px] tracking-tight hover:opacity-80">
-            {branding.logoUrl ? (
-              <img src={branding.logoUrl} alt={branding.name} className="w-4 h-4 object-contain" />
-            ) : (
-              <Terminal className="w-4 h-4" style={{ color: branding.primaryColor }} />
-            )}
-            <span>{branding.name}</span>
+          <Link href="/dashboard" className="flex items-center gap-2.5 select-none group/logo shrink-0">
+            <img
+              src="/logo/logo_white.png"
+              alt="InterviewOS"
+              className="w-[22px] h-[22px] block shrink-0"
+            />
+            <span className="font-display font-semibold text-[14px] tracking-tight text-white/90 group-hover/logo:text-white transition-colors duration-200">
+              InterviewOS
+            </span>
           </Link>
         </div>
 
-        <div className="hidden md:flex items-center gap-6 text-[12px] font-normal text-body-muted/80 tracking-tight">
-          <Link
-            href="/dashboard"
-            aria-current={pathname === '/dashboard' ? 'page' : undefined}
-            className={pathname === '/dashboard' ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Dashboard
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/questions"
-            aria-current={pathname === '/questions' || pathname.startsWith('/questions/') ? 'page' : undefined}
-            className={pathname === '/questions' || pathname.startsWith('/questions/') ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Questions
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/templates"
-            aria-current={pathname === '/templates' ? 'page' : undefined}
-            className={pathname === '/templates' ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Templates
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/recordings"
-            aria-current={pathname === '/recordings' ? 'page' : undefined}
-            className={pathname === '/recordings' ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Recordings
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/analytics"
-            aria-current={pathname === '/analytics' ? 'page' : undefined}
-            className={pathname === '/analytics' ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Analytics
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/docs"
-            aria-current={pathname === '/docs' || pathname.startsWith('/docs/') ? 'page' : undefined}
-            className={pathname === '/docs' || pathname.startsWith('/docs/') ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Docs
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/support"
-            aria-current={pathname === '/support' || pathname.startsWith('/support/') ? 'page' : undefined}
-            className={pathname === '/support' || pathname.startsWith('/support/') ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Support
-          </Link>
-          <span className="opacity-20" aria-hidden="true">/</span>
-          <Link
-            href="/team"
-            aria-current={pathname === '/team' || pathname.startsWith('/team/') ? 'page' : undefined}
-            className={pathname === '/team' || pathname.startsWith('/team/') ? 'text-white' : 'hover:text-white transition-colors'}
-          >
-            Team
-          </Link>
+        <div className="hidden md:flex items-center gap-5 text-[12px] font-normal text-body-muted/80 tracking-tight">
+          {(['Dashboard', 'Questions', 'Templates', 'Recordings'] as const).map((label) => {
+            const href = `/${label.toLowerCase()}`;
+            const isActive = href === '/dashboard'
+              ? pathname === '/dashboard'
+              : pathname === href || pathname.startsWith(href + '/');
+            return (
+              <Link
+                key={label}
+                href={href}
+                aria-current={isActive ? 'page' : undefined}
+                className={isActive ? 'text-white' : 'hover:text-white transition-colors'}
+              >
+                {label}
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Dashboard mode switcher */}
+        <div className="hidden md:flex items-center gap-1 p-0.5 rounded-lg bg-white/[0.03] border border-white/[0.06]">
+          {(['INTERVIEWER', 'CANDIDATE'] as const).map((m) => {
+            const active = dashboardMode === m;
+            return (
+              <button
+                key={m}
+                onClick={() => setDashboardMode(m)}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all duration-200 ${
+                  active
+                    ? 'bg-white/[0.08] text-white'
+                    : 'text-body-muted/50 hover:text-white/70'
+                }`}
+              >
+                {m === 'INTERVIEWER' ? 'Interviewer' : 'Candidate'}
+              </button>
+            );
+          })}
         </div>
 
         <div className="flex items-center gap-3">
@@ -170,6 +146,55 @@ export const Header: React.FC<HeaderProps> = ({ subTitle, subActions }) => {
           </Tooltip>
           <ThemeToggle />
           <NotificationBell />
+
+          {/* Help dropdown */}
+          <div className="relative">
+            <Tooltip content="Help & resources" side="bottom">
+              <button
+                onClick={() => setHelpOpen(!helpOpen)}
+                className="w-7 h-7 rounded-lg text-[14px] font-semibold text-body-muted/50 hover:text-white hover:bg-white/[0.04] transition-colors flex items-center justify-center"
+                aria-label="Help and resources"
+                aria-haspopup="true"
+                aria-expanded={helpOpen}
+              >
+                ?
+              </button>
+            </Tooltip>
+            <AnimatePresence>
+              {helpOpen && (
+                <>
+                  <div onClick={() => setHelpOpen(false)} className="fixed inset-0 z-[9991]" />
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                    transition={{ duration: 0.15, ease: [0.22, 1, 0.36, 1] }}
+                    className="absolute right-0 mt-2 w-[180px] origin-top-right rounded-lg border border-white/[0.06] bg-surface-tile-2/95 backdrop-blur-md shadow-[var(--shadow-dropdown-lg)] z-[9992] overflow-hidden"
+                  >
+                    <div className="p-1.5 flex flex-col gap-0.5">
+                      <Link
+                        href="/docs"
+                        onClick={() => setHelpOpen(false)}
+                        className="w-full px-3 py-2 flex items-center gap-2.5 rounded-lg text-[12px] text-body-muted/80 hover:bg-white/[0.04] transition-colors duration-150"
+                      >
+                        <FileText className="w-3.5 h-3.5 text-body-muted/55" />
+                        <span>Documentation</span>
+                      </Link>
+                      <Link
+                        href="/support"
+                        onClick={() => setHelpOpen(false)}
+                        className="w-full px-3 py-2 flex items-center gap-2.5 rounded-lg text-[12px] text-body-muted/80 hover:bg-white/[0.04] transition-colors duration-150"
+                      >
+                        <LifeBuoy className="w-3.5 h-3.5 text-body-muted/55" />
+                        <span>Support</span>
+                      </Link>
+                    </div>
+                  </motion.div>
+                </>
+              )}
+            </AnimatePresence>
+          </div>
+
           {isGuest(user) ? (
             <div className="relative">
               <button
@@ -281,6 +306,22 @@ export const Header: React.FC<HeaderProps> = ({ subTitle, subActions }) => {
                         </div>
                       </div>
                       <div className="p-1.5 flex flex-col gap-0.5 border-b border-white/[0.06]">
+                        <Link
+                          href="/analytics"
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full px-3 py-2 flex items-center justify-between text-left rounded-lg text-[12px] text-body-muted/80 hover:bg-white/[0.04] transition-colors duration-150"
+                        >
+                          <span>Analytics</span>
+                          <BarChart3 className="w-3.5 h-3.5 text-body-muted/55" />
+                        </Link>
+                        <Link
+                          href="/team"
+                          onClick={() => setDropdownOpen(false)}
+                          className="w-full px-3 py-2 flex items-center justify-between text-left rounded-lg text-[12px] text-body-muted/80 hover:bg-white/[0.04] transition-colors duration-150"
+                        >
+                          <span>Team</span>
+                          <Users className="w-3.5 h-3.5 text-body-muted/55" />
+                        </Link>
                         <Link
                           href="/settings"
                           onClick={() => setDropdownOpen(false)}

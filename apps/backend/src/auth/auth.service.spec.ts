@@ -8,7 +8,7 @@ import {
   UnauthorizedException,
   ForbiddenException,
 } from '@nestjs/common';
-import { Role, Plan } from '@prisma/client';
+import { Role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -24,7 +24,6 @@ describe('AuthService', () => {
     email: 'test@example.com',
     name: 'Test User',
     role: Role.CANDIDATE,
-    plan: Plan.FREE,
     passwordHash: 'hashed-password',
     emailVerified: new Date(),
     verificationToken: null,

@@ -129,9 +129,9 @@ export const RightPanel: React.FC<RightPanelProps> = ({
 
   return (
     <motion.div
-      animate={isMobile ? {} : { width: isCollapsed ? 48 : 380 }}
+      animate={isMobile ? {} : { width: isCollapsed ? 44 : 340 }}
       transition={{ duration: 0.35, ease }}
-      className="bg-surface-tile-1 border border-white/[0.06] rounded-lg overflow-hidden flex shrink-0 w-full md:w-auto h-full"
+      className="bg-surface-black border-l border-white/[0.06] overflow-hidden flex shrink-0 w-full md:w-auto h-full"
     >
       {/* Collapsed Tab Strip */}
       <AnimatePresence>
@@ -141,7 +141,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="flex flex-col items-center gap-1 w-12 py-3 shrink-0"
+            className="flex flex-col items-center gap-1 w-11 py-3 shrink-0"
           >
             {availableTabs.map((tab) => {
               const Icon = TAB_ICONS[tab];
@@ -191,7 +191,7 @@ export const RightPanel: React.FC<RightPanelProps> = ({
             className="flex-1 flex flex-col min-w-0 overflow-hidden"
           >
             {/* Header with collapse button */}
-            <div className="h-10 bg-surface-tile-2 border-b border-white/[0.06] flex items-center justify-between px-2 sm:px-4 gap-2 shrink-0">
+            <div className="h-10 bg-surface-black border-b border-white/[0.06] flex items-center justify-between px-2 sm:px-3 gap-2 shrink-0">
               <div className="flex gap-1 sm:gap-2 overflow-x-auto flex-nowrap [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-1" role="tablist">
                 {availableTabs.map((tab) => {
                   const Icon = TAB_ICONS[tab];

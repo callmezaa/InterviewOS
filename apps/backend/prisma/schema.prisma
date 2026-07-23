@@ -12,13 +12,6 @@ enum Role {
   CANDIDATE
 }
 
-enum Plan {
-  FREE
-  PRO
-  TEAM
-  ENTERPRISE
-}
-
 enum InterviewStatus {
   SCHEDULED
   ACTIVE
@@ -62,13 +55,6 @@ model User {
   passwordHash          String?
   name                  String
   role                  Role          @default(CANDIDATE)
-  plan                  Plan          @default(FREE)
-  billingInterval       String?       @default("monthly")
-  stripeCustomerId      String?       @unique
-  stripeSubscriptionId  String?
-  subscriptionStatus    String?
-  currentPeriodEnd      DateTime?
-  trialEndsAt           DateTime?
   provider              String?
   providerId            String?
   avatarUrl             String?

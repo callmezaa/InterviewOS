@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Play, Sparkles, Loader2, Plus, X, FileCode, FolderOpen, ChevronRight, Terminal, IndentIncrease } from 'lucide-react';
@@ -205,6 +206,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [langSelectorOpen, setLangSelectorOpen] = useState(false);
   const langSelectorRef = useRef<HTMLDivElement>(null);
+  const langDropdownRef = useRef<HTMLDivElement>(null);
   const [isAddingFile, setIsAddingFile] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [pendingDeleteFile, setPendingDeleteFile] = useState<WorkspaceFile | null>(null);
@@ -227,7 +229,10 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   useEffect(() => {
     if (!langSelectorOpen) return;
     const handler = (e: MouseEvent) => {
-      if (langSelectorRef.current && !langSelectorRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      const inButton = langSelectorRef.current?.contains(target);
+      const inDropdown = langDropdownRef.current?.contains(target);
+      if (!inButton && !inDropdown) {
         setLangSelectorOpen(false);
       }
     };
@@ -356,7 +361,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
         onChange(result.code);
         // Also update Monaco model directly
         const editor = editorRef.current;
-        if (editor && !editor.isDisposed()) {
+        if (editor && !!editor.getModel()) {
           const model = editor.getModel();
           if (model) {
             model.pushEditOperations(
@@ -551,7 +556,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
       // Set Monaco markers for visual squiggly lines
       const monaco = monacoRef.current;
       const editor = editorRef.current;
-      if (monaco && editor && !editor.isDisposed()) {
+      if (monaco && editor && !!editor.getModel()) {
         const model = editor.getModel();
         if (model) {
           const markers = results.map((d) => ({
@@ -605,7 +610,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
         // Update Monaco markers
         const monaco = monacoRef.current;
         const editor = editorRef.current;
-        if (monaco && editor && !editor.isDisposed() && activeFile?.language !== 'javascript' && activeFile?.language !== 'typescript') {
+        if (monaco && editor && !!editor.getModel() && activeFile?.language !== 'javascript' && activeFile?.language !== 'typescript') {
           const model = editor.getModel();
           if (model) {
             const markers = next.map((d) => ({
@@ -636,7 +641,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
     setDiagnostics([]);
     const monaco = monacoRef.current;
     const editor = editorRef.current;
-    if (monaco && editor && !editor.isDisposed()) {
+    if (monaco && editor && !!editor.getModel()) {
       const model = editor.getModel();
       if (model) monaco.editor.setModelMarkers(model, 'interviewos-lint', []);
     }
@@ -646,7 +651,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   useEffect(() => {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
-    if (!editor || !monaco || editor.isDisposed()) return;
+    if (!editor || !monaco || !editor.getModel()) return;
 
     if (!testResults || testResults.length === 0) {
       testDecorationsRef.current = editor.deltaDecorations(testDecorationsRef.current, []);
@@ -688,7 +693,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   useEffect(() => {
     const editor = editorRef.current;
     const monaco = monacoRef.current;
-    if (!editor || !monaco || !remoteCursors || editor.isDisposed()) return;
+    if (!editor || !monaco || !remoteCursors || !editor.getModel()) return;
 
     const decorations: any[] = [];
 
@@ -773,13 +778,20 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
               </button>
             </Tooltip>
             <AnimatePresence>
-              {langSelectorOpen && (
+              {langSelectorOpen && langSelectorRef.current && createPortal(
                 <motion.div
+                  ref={langDropdownRef}
                   initial={{ opacity: 0, scale: 0.95, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -4 }}
                   transition={{ duration: 0.12, ease: 'easeOut' }}
-                  className="absolute right-0 top-full mt-1 z-50 w-[160px] sm:w-[180px] bg-surface-tile-3 border border-white/[0.08] rounded-lg shadow-xl overflow-hidden"
+                  style={{
+                    position: 'fixed',
+                    top: langSelectorRef.current.getBoundingClientRect().bottom + 4,
+                    left: langSelectorRef.current.getBoundingClientRect().right - 180,
+                    zIndex: 9999,
+                  }}
+                  className="w-[180px] bg-surface-tile-3 border border-white/[0.08] rounded-lg shadow-xl overflow-hidden"
                 >
                   {SUPPORTED_LANGUAGES.map((l, i) => {
                     const cfg = LANG_CONFIG[l.value];
@@ -803,7 +815,8 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
                       </button>
                     );
                   })}
-                </motion.div>
+                </motion.div>,
+                document.body
               )}
             </AnimatePresence>
           </div>

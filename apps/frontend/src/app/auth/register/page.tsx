@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useInterviewStore } from '../../../store/useInterviewStore';
 import { Button } from '../../../components/ui/Button';
-import { Mail, User, ArrowRight, AlertCircle, Loader2, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '../../../store/useToastStore';
 import { AuthLayout } from '../../../components/auth/AuthLayout';
 import { InputField } from '../../../components/auth/InputField';
@@ -22,7 +22,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
-  const role = 'CANDIDATE';
+  const [role, setRole] = useState<'CANDIDATE' | 'INTERVIEWER'>('CANDIDATE');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [touched, setTouched] = useState<{ name?: boolean; email?: boolean; password?: boolean }>({});
@@ -67,13 +67,8 @@ export default function RegisterPage() {
   const isFormValid =
     !validate('name', name) && !validate('email', email) && !validate('password', password);
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (mounted && user) router.push('/dashboard');
-  }, [mounted, user, router]);
+  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => { if (mounted && user) router.push('/dashboard'); }, [mounted, user, router]);
 
   if (!mounted) return <AuthSkeleton />;
 
@@ -102,6 +97,10 @@ export default function RegisterPage() {
         throw new Error('Too many registration attempts. Please wait a moment and try again.');
       }
 
+      if (response.status === 404) {
+        throw new Error('Auth service not available. Make sure the API server is running on port 3001.');
+      }
+
       const data = await response.json().catch(() => null);
 
       if (!response.ok) {
@@ -121,30 +120,36 @@ export default function RegisterPage() {
       const message = err instanceof Error ? err.message : 'Connection failed.';
       console.error('Register error:', err);
       toast.error('Registration failed', message);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <AuthLayout
-      heading="Land Your Dream Job"
-    >
-      {/* Heading */}
-      <div className="flex flex-col gap-2 mb-7">
-        <h2 className="font-semibold text-h1 text-white">
-          Create your account
-        </h2>
-        <p className="text-[14px] text-white/55 leading-relaxed">
-          Start practicing today.
-        </p>
+    <AuthLayout heading="Create your account">
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        {(['INTERVIEWER', 'CANDIDATE'] as const).map((r) => (
+          <button
+            key={r}
+            type="button"
+            onClick={() => setRole(r)}
+            className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg border text-center transition-all duration-200 ${
+              role === r
+                ? 'border-white/[0.12] bg-white/[0.04]'
+                : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1] hover:bg-white/[0.03]'
+            }`}
+          >
+            <span className="text-[20px]">{r === 'INTERVIEWER' ? '🎤' : '🧑'}</span>
+            <span className={`text-[12px] font-semibold leading-tight ${role === r ? 'text-white' : 'text-white/70'}`}>
+              {r === 'INTERVIEWER' ? "I'm an Interviewer" : "I'm a Candidate"}
+            </span>
+            <span className="text-[10px] text-body-muted/40 leading-tight">
+              {r === 'INTERVIEWER' ? 'Conduct & evaluate sessions' : 'Attend & participate'}
+            </span>
+          </button>
+        ))}
       </div>
-
-      {/* Form */}
       <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
-        {/* Full name */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor={nameId} className="text-[13px] text-white/50 font-medium">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={nameId} className="text-[12px] text-white/40 font-medium">
             Full Name
           </label>
           <InputField
@@ -155,22 +160,19 @@ export default function RegisterPage() {
             onChange={(e) => handleChange('name', e.target.value, setName)}
             onBlur={() => handleBlur('name', name)}
             placeholder="Alex Chen"
-            icon={User}
-            hasError={!!errors.name && touched.name}
             autoComplete="name"
             autoFocus
           />
           {errors.name && touched.name && (
-            <span className="flex items-center gap-1.5 text-[12px] text-red-400/70">
+            <span className="flex items-center gap-1.5 text-[11px] text-red-400/60">
               <AlertCircle className="w-3 h-3 shrink-0" />
               {errors.name}
             </span>
           )}
         </div>
 
-        {/* Work email */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor={emailId} className="text-[13px] text-white/50 font-medium">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={emailId} className="text-[12px] text-white/40 font-medium">
             Work Email
           </label>
           <InputField
@@ -181,21 +183,18 @@ export default function RegisterPage() {
             onChange={(e) => handleChange('email', e.target.value, setEmail)}
             onBlur={() => handleBlur('email', email)}
             placeholder="you@company.com"
-            icon={Mail}
-            hasError={!!errors.email && touched.email}
             autoComplete="email"
           />
           {errors.email && touched.email && (
-            <span className="flex items-center gap-1.5 text-[12px] text-red-400/70">
+            <span className="flex items-center gap-1.5 text-[11px] text-red-400/60">
               <AlertCircle className="w-3 h-3 shrink-0" />
               {errors.email}
             </span>
           )}
         </div>
 
-        {/* Password */}
-        <div className="flex flex-col gap-2">
-          <label htmlFor={passwordId} className="text-[13px] text-white/50 font-medium">
+        <div className="flex flex-col gap-1.5">
+          <label htmlFor={passwordId} className="text-[12px] text-white/40 font-medium">
             Password
           </label>
           <PasswordField
@@ -204,65 +203,37 @@ export default function RegisterPage() {
             value={password}
             onChange={(e) => handleChange('password', e.target.value, setPassword)}
             onBlur={() => handleBlur('password', password)}
-            hasError={!!errors.password && touched.password}
             autoComplete="new-password"
           />
           {errors.password && touched.password && (
-            <span className="flex items-center gap-1.5 text-[12px] text-red-400/70">
+            <span className="flex items-center gap-1.5 text-[11px] text-red-400/60">
               <AlertCircle className="w-3 h-3 shrink-0" />
               {errors.password}
             </span>
           )}
         </div>
 
-        {/* CTA */}
         <Button
           type="submit"
-          variant="primary"
+          variant="default"
           disabled={loading || (!isFormValid && touched.name && touched.email && touched.password)}
-          className="w-full flex items-center justify-center gap-2 py-3 text-[15px] font-medium rounded-full mt-1"
-          style={{
-            boxShadow: loading
-              ? 'none'
-              : '0 4px 12px -2px var(--color-primary-glow)',
-          }}
+          className="w-full mt-1"
         >
-          {loading ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <>
-              <span>Create account</span>
-              <ArrowRight className="w-4 h-4" />
-            </>
-          )}
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create account'}
         </Button>
-
-        {/* Trust pills */}
-        <div className="flex items-center justify-center gap-5 pt-1">
-          {['14-day free trial', 'No credit card', 'Cancel anytime'].map((item) => (
-            <span key={item} className="flex items-center gap-1.5 text-[11px] text-white/40">
-              <CheckCircle2 className="w-3 h-3 text-primary/40 shrink-0" />
-              {item}
-            </span>
-          ))}
-        </div>
       </form>
 
-      {/* OAuth */}
       <div className="mt-5">
         <OAuthButtons />
       </div>
 
-      {/* Footer */}
       <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
         <Link
           href="/auth/login"
-          className="text-[13px] text-white/55 hover:text-white/60 transition-colors duration-200"
+          className="text-[12px] text-white/40 hover:text-white/60 transition-colors"
         >
           Already have an account?{' '}
-          <span className="text-primary font-medium underline underline-offset-2 decoration-primary/30 hover:decoration-primary transition-colors duration-200">
-            Sign in
-          </span>
+          <span className="text-white/70 font-medium">Sign in</span>
         </Link>
       </div>
     </AuthLayout>

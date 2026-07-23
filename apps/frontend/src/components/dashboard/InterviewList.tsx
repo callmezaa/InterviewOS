@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { Search } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { SkeletonCard } from '../ui/SkeletonCard';
 import { InterviewCard } from './InterviewCard';
 import { BulkActionBar } from './BulkActionBar';
@@ -20,8 +20,6 @@ interface InterviewListProps {
   searchQuery: string;
   statusFilter: string;
   userRole: 'INTERVIEWER' | 'CANDIDATE';
-  demoLoading: boolean;
-  onLoadDemo: () => void;
   onSchedule?: () => void;
   onCopyLink: (e: React.MouseEvent, id: string) => void;
   onStartRoom: (id: string) => void;
@@ -40,8 +38,7 @@ interface InterviewListProps {
 
 export function InterviewList({
   loading, interviews, filteredInterviews,
-  searchQuery, statusFilter, userRole,
-  demoLoading, onLoadDemo, onSchedule,
+  searchQuery, statusFilter, userRole, onSchedule,
   onCopyLink, onStartRoom, onSelectReview, copiedId, onClearFilters,
   selectedIds, onToggleSelect, onSelectAll, onDeselectAll,
   onBulkDelete, onBulkCancel, onBulkCopyLinks, onBulkExportCSV,
@@ -55,8 +52,6 @@ export function InterviewList({
       {interviews.length === 0 ? (
         <EmptyStateCard
           userRole={userRole}
-          demoLoading={demoLoading}
-          onLoadDemo={onLoadDemo}
           onSchedule={onSchedule}
         />
       ) : filteredInterviews.length === 0 ? (

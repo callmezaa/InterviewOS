@@ -2,8 +2,9 @@
 
 import { useRef } from 'react';
 import Link from 'next/link';
-import { motion, useInView } from 'framer-motion';
-import { Terminal, ArrowUpRight } from 'lucide-react';
+import { motion, useInView } from 'motion/react';
+import Image from 'next/image';
+import { ArrowUpRight } from 'lucide-react';
 
 // ── Inline SVG social icons ──
 function IconGitHub({ className }: { className?: string }) {
@@ -79,12 +80,20 @@ export function SiteFooter() {
         <motion.div variants={ITEM} className="md:col-span-5 flex flex-col gap-5">
           {/* Logo */}
           <div className="flex items-center gap-2 select-none">
-            <div className="w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] shadow-[inset_0_1.5px_0_rgba(255,255,255,0.05)] flex items-center justify-center">
-              <Terminal className="w-4 h-4 text-primary" />
-            </div>
-            <span className="font-display font-semibold text-[15px] tracking-tight text-white">
-              InterviewOS
-            </span>
+            <Image
+              src="/logo/logo_white.png"
+              alt="InterviewOS"
+              width={100}
+              height={24}
+              className="hidden dark:block"
+            />
+            <Image
+              src="/logo/logo_black.png"
+              alt="InterviewOS"
+              width={100}
+              height={24}
+              className="block dark:hidden"
+            />
           </div>
 
           {/* Tagline */}

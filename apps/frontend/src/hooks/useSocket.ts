@@ -45,7 +45,8 @@ export const useSocket = (interviewId?: string) => {
     });
 
     socketInstance.on('connect_error', (err) => {
-      console.error('[Socket] Connection error:', err.message);
+      // ponytail: suppress when backend is not running — expected in dev/mock mode
+      console.warn('[Socket] Connection error:', err.message);
       setConnectionStatus('disconnected');
     });
 

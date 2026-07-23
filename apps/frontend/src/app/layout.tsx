@@ -1,8 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import { Suspense } from "react";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { MotionConfig } from "framer-motion";
+import { MotionConfig } from "motion/react";
 import { Toaster } from "../components/ui/Toaster";
 import { ShortcutsModal } from "../components/ui/ShortcutsModal";
 import { SkipLink } from "../components/ui/SkipLink";
@@ -14,10 +14,15 @@ import { CommandPaletteLoader } from "../components/ui/CommandPaletteLoader";
 import { BrandingProvider } from "../components/providers/BrandingProvider";
 import { SentryProvider } from "../components/providers/SentryProvider";
 import { ClientInit } from "../components/ClientInit";
+import { cn } from "@/lib/utils";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-sans",
+const jakartaSans = Plus_Jakarta_Sans({
+  subsets: ['latin'],
+  variable: '--font-sans',
+});
+const jakartaMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
 });
 
 export const metadata: Metadata = {
@@ -64,7 +69,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased safe-area-inset`} suppressHydrationWarning>
+    <html lang="en" className={cn("h-full", "antialiased", "safe-area-inset", "font-sans", jakartaSans.variable, jakartaMono.variable)} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{

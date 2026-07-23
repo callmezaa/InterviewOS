@@ -9,8 +9,6 @@ export function InputField({
   onChange,
   placeholder,
   required,
-  icon,
-  hasError,
   onBlur,
   autoComplete,
   autoFocus,
@@ -21,8 +19,6 @@ export function InputField({
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   placeholder: string;
   required?: boolean;
-  icon: React.ElementType;
-  hasError?: boolean;
   onBlur?: () => void;
   autoComplete?: string;
   autoFocus?: boolean;
@@ -35,12 +31,9 @@ export function InputField({
       onChange={onChange}
       placeholder={placeholder}
       required={required}
-      icon={icon}
-      error={hasError ? ' ' : undefined}
       onBlur={onBlur}
       autoComplete={autoComplete}
       autoFocus={autoFocus}
-      size="lg"
     />
   );
 }

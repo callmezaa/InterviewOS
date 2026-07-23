@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { List, Calendar, RefreshCw, X } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { hoverScale } from '../../lib/motion';
 import { Tooltip } from '../ui/Tooltip';
 
@@ -36,7 +36,7 @@ export function SearchToolbar({
             <motion.button
               onClick={() => onViewChange('list')}
               className={`px-3 py-1 rounded-pill text-[12px] font-semibold transition-all flex items-center gap-1 ${
-                dashboardView === 'list' ? 'bg-primary text-white' : 'text-body-muted/50 hover:text-white'
+                dashboardView === 'list' ? 'bg-white/[0.08] text-white' : 'text-body-muted/50 hover:text-white'
               }`}
               {...hoverScale}
               aria-label="List view"
@@ -51,7 +51,7 @@ export function SearchToolbar({
             <motion.button
               onClick={() => onViewChange('calendar')}
               className={`px-3 py-1 rounded-pill text-[12px] font-semibold transition-all flex items-center gap-1 ${
-                dashboardView === 'calendar' ? 'bg-primary text-white' : 'text-body-muted/50 hover:text-white'
+                dashboardView === 'calendar' ? 'bg-white/[0.08] text-white' : 'text-body-muted/50 hover:text-white'
               }`}
               {...hoverScale}
               aria-label="Calendar view"
@@ -87,19 +87,13 @@ export function SearchToolbar({
           >
             {(['ALL', 'ACTIVE', 'SCHEDULED', 'COMPLETED'] as const).map((filter, i) => {
               const isActive = statusFilter === filter;
-              const activeStyles = {
-                ALL: 'bg-white/[0.08] border-white/[0.12] text-white',
-                ACTIVE: 'bg-primary/15 border-primary/30 text-primary-on-dark',
-                SCHEDULED: 'bg-primary/10 border-primary/25 text-primary-on-dark',
-                COMPLETED: 'bg-white/[0.06] border-white/[0.1] text-white',
-              };
               const filterLabel = filter === 'ALL' ? 'All' : filter.charAt(0) + filter.slice(1).toLowerCase();
               return (
                 <Tooltip key={filter} content={`${filterLabel} interviews`} shortcut={String(i + 1)} side="bottom">
                   <motion.button
                     onClick={() => onStatusFilterChange(filter)}
                     className={`flex items-center gap-1.5 px-3 py-1 rounded-pill border text-[11px] font-semibold transition-all duration-200 ${
-                      isActive ? activeStyles[filter] : 'border-white/[0.06] text-body-muted/55 hover:text-white/70 hover:border-white/[0.1]'
+                      isActive ? 'bg-white/[0.08] border-white/[0.12] text-white' : 'border-white/[0.06] text-body-muted/55 hover:text-white/70 hover:border-white/[0.1]'
                     }`}
                     {...hoverScale}
                     aria-label={`Filter by ${filter === 'ALL' ? 'all statuses' : filter.toLowerCase()}`}

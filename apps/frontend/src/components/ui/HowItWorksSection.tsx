@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion, useInView } from 'motion/react';
 import { Video, Code2, Sparkles } from 'lucide-react';
 import { Badge } from './Badge';
 

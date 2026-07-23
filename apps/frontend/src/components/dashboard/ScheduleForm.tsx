@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useCallback } from 'react';
-import { Plus, Layout, Cpu, Code2, X, Repeat } from 'lucide-react';
-import { motion } from 'framer-motion';
+import React from 'react';
+import { Plus, Repeat } from 'lucide-react';
+import { motion } from 'motion/react';
 import { Button } from '../ui/Button';
 import { Card } from '../ui/Card';
 import { Input } from '../ui/Input';
@@ -20,8 +20,6 @@ interface ScheduleFormProps {
   onScheduledTimeChange: (v: string) => void;
   submitting: boolean;
   onSubmit: (e: React.FormEvent) => void;
-  templateId?: string | null;
-  onClearTemplate?: () => void;
   recurrenceEnabled?: boolean;
   onRecurrenceToggle?: (v: boolean) => void;
   recurrenceFrequency?: RecurrenceFrequency;
@@ -29,36 +27,6 @@ interface ScheduleFormProps {
   recurrenceEndOccurrences?: number;
   onRecurrenceEndOccurrencesChange?: (v: number) => void;
 }
-
-const TEMPLATES = [
-  {
-    id: 'frontend',
-    title: 'Frontend Engineering',
-    description: 'React component architecture, state management, styling approach, and frontend system design.',
-    icon: Layout,
-    color: 'text-sky-400',
-    border: 'border-sky-400/20 hover:border-sky-400/40',
-    bg: 'bg-sky-400/8',
-  },
-  {
-    id: 'backend',
-    title: 'Backend Systems',
-    description: 'API design, database schema, system architecture, and backend engineering patterns.',
-    icon: Cpu,
-    color: 'text-emerald-400',
-    border: 'border-emerald-400/20 hover:border-emerald-400/40',
-    bg: 'bg-emerald-400/8',
-  },
-  {
-    id: 'dsa',
-    title: 'Problem Solving (DSA)',
-    description: 'Algorithms, data structures, time/space complexity, and optimization techniques.',
-    icon: Code2,
-    color: 'text-violet-400',
-    border: 'border-violet-400/20 hover:border-violet-400/40',
-    bg: 'bg-violet-400/8',
-  },
-];
 
 const FREQ_LABELS: Record<RecurrenceFrequency, string> = {
   DAILY: 'Daily',
@@ -73,7 +41,6 @@ export function ScheduleForm({
   candidateEmail, onCandidateEmailChange,
   scheduledTime, onScheduledTimeChange,
   submitting, onSubmit,
-  templateId, onClearTemplate,
   recurrenceEnabled = false,
   onRecurrenceToggle,
   recurrenceFrequency = 'WEEKLY',
@@ -81,14 +48,6 @@ export function ScheduleForm({
   recurrenceEndOccurrences = 12,
   onRecurrenceEndOccurrencesChange,
 }: ScheduleFormProps) {
-  const activeTemplate = TEMPLATES.find((t) => t.title === title && t.description === description);
-  const isFromTemplate = !!templateId;
-
-  const applyTemplate = useCallback((t: typeof TEMPLATES[number]) => {
-    onTitleChange(t.title);
-    onDescriptionChange(t.description);
-  }, [onTitleChange, onDescriptionChange]);
-
   return (
     <Card id="schedule-form" variant="ghost" className="p-6 flex flex-col gap-6">
       <div className="flex items-center gap-2 border-b border-white/[0.06] pb-4">
@@ -96,53 +55,6 @@ export function ScheduleForm({
         <h3 className="font-display font-semibold text-h3 text-white">
           Schedule Interview
         </h3>
-        {isFromTemplate && (
-          <span className="ml-auto flex items-center gap-1.5 text-[10px] font-mono font-semibold text-primary bg-primary/10 border border-primary/20 px-2 py-0.5 rounded-full">
-            From Template
-            {onClearTemplate && (
-              <button type="button" onClick={onClearTemplate} className="hover:text-white transition-colors" aria-label="Clear template">
-                <X className="w-3 h-3" />
-              </button>
-            )}
-          </span>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-2">
-        <span className="text-[11px] text-body-muted/50 font-mono font-semibold">Quick Start Templates</span>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          {TEMPLATES.map((t) => {
-            const Icon = t.icon;
-            const isActive = activeTemplate?.id === t.id;
-            return (
-              <motion.button
-                key={t.id}
-                type="button"
-                onClick={() => applyTemplate(t)}
-                whileTap={{ scale: 0.98 }}
-                className={`flex items-start gap-2.5 p-3 rounded-lg border text-left transition-all duration-200 ${
-                  isActive
-                    ? `${t.border} ${t.bg}`
-                    : 'border-white/[0.06] hover:border-white/[0.12] bg-white/[0.02] hover:bg-white/[0.04]'
-                }`}
-              >
-                <div className={`w-7 h-7 rounded-md border flex items-center justify-center shrink-0 mt-0.5 ${
-                  isActive ? `${t.border} ${t.bg}` : 'border-white/[0.06] bg-white/[0.03]'
-                }`}>
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? t.color : 'text-white/40'}`} />
-                </div>
-                <div className="min-w-0">
-                  <span className={`block text-[12px] font-semibold leading-snug ${isActive ? 'text-white' : 'text-white/70'}`}>
-                    {t.title}
-                  </span>
-                  <span className={`block text-[10px] mt-0.5 leading-relaxed line-clamp-2 ${isActive ? 'text-white/50' : 'text-body-muted/40'}`}>
-                    {t.description}
-                  </span>
-                </div>
-              </motion.button>
-            );
-          })}
-        </div>
       </div>
 
       <form onSubmit={onSubmit} className="flex flex-col gap-4" aria-label="Schedule interview form">
@@ -246,7 +158,7 @@ export function ScheduleForm({
                       onClick={() => onRecurrenceFrequencyChange?.(key)}
                       className={`px-3 py-2 text-[12px] font-medium rounded-lg border transition-all duration-200 ${
                         recurrenceFrequency === key
-                          ? 'bg-primary/10 border-primary/30 text-primary-on-dark'
+                          ? 'bg-white/[0.08] border-white/[0.12] text-white'
                           : 'bg-white/[0.03] border-white/[0.06] text-body-muted/60 hover:text-white hover:border-white/[0.12]'
                       }`}
                     >

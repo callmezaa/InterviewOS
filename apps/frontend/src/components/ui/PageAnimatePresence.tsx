@@ -69,7 +69,7 @@ const DEPTH: Record<string, number> = {
   '/settings': 1,
   '/team': 1,
   '/recordings': 1,
-  '/pricing': 0,
+
   '/docs': 0,
   '/support': 0,
   '/auth': 0,

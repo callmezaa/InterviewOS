@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Link from 'next/link';
-import { Mail, ArrowRight, ArrowLeft, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2 } from 'lucide-react';
 import { Button } from '../../../components/ui/Button';
 import { toast } from '../../../store/useToastStore';
 import { AuthLayout } from '../../../components/auth/AuthLayout';
@@ -38,46 +38,36 @@ export default function ForgotPasswordPage() {
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Connection failed.';
       toast.error('Request failed', message);
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   return (
-    <AuthLayout
-      heading="Master Your Next Interview"
-      subheading="Practice with AI-powered mock interviews and get real-time feedback."
-    >
+    <AuthLayout>
       {sent ? (
         <div className="flex flex-col items-center gap-5 text-center py-4">
-          <CheckCircle2 className="w-12 h-12 text-primary" />
-          <div className="flex flex-col gap-2">
-            <h2 className="font-semibold text-h2 text-white">
+          <CheckCircle2 className="w-10 h-10 text-primary" />
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display font-bold text-[20px] text-white">
               Check your inbox
             </h2>
-            <p className="text-white/55 text-[14px] leading-relaxed max-w-sm">
-              If an account with <strong className="text-white/60">{email}</strong> exists, a password reset link has been sent.
+            <p className="text-[13px] text-white/50 leading-relaxed max-w-sm">
+              If an account with <span className="text-white/60">{email}</span> exists, a password reset link has been sent.
             </p>
           </div>
           <Link
             href="/auth/login"
-            className="text-[13px] text-primary hover:text-primary/80 transition-colors duration-200 font-medium underline underline-offset-2"
+            className="text-[12px] text-white/40 hover:text-white/60 transition-colors"
           >
             Back to Sign In
           </Link>
         </div>
       ) : (
         <>
-          <div className="flex flex-col gap-2 mb-7">
-            <h2 className="font-semibold text-h1 text-white">
-              Forgot password
-            </h2>
-            <p className="text-[14px] text-white/55 leading-relaxed">
-              Enter your email address and we&apos;ll send you a reset link.
-            </p>
-          </div>
+          <p className="text-[13px] text-white/50 leading-relaxed mb-6">
+            Enter your email address and we&apos;ll send you a reset link.
+          </p>
 
-          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <InputField
               id="forgot-email"
               type="email"
@@ -85,27 +75,20 @@ export default function ForgotPasswordPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="you@company.com"
-              icon={Mail}
             />
 
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={loading}
-              className="w-full flex items-center justify-center gap-2 py-3 text-[15px] font-medium rounded-full"
-            >
-              <span>{loading ? 'Sending...' : 'Send Reset Link'}</span>
-              {!loading && <ArrowRight className="w-4 h-4" />}
+            <Button type="submit" variant="default" disabled={loading} className="w-full">
+              {loading ? 'Sending...' : 'Send Reset Link'}
             </Button>
           </form>
 
-          <div className="mt-7 pt-5 border-t border-white/[0.06] text-center">
+          <div className="mt-6 pt-5 border-t border-white/[0.06] text-center">
             <Link
               href="/auth/login"
-              className="flex items-center justify-center gap-1.5 text-[13px] text-white/55 hover:text-white/60 transition-colors duration-200 group"
+              className="inline-flex items-center gap-1.5 text-[12px] text-white/40 hover:text-white/60 transition-colors group"
             >
-              <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-200 group-hover:-translate-x-0.5" />
-              <span className="underline underline-offset-2">Back to Sign In</span>
+              <ArrowLeft className="w-3 h-3 transition-transform group-hover:-translate-x-0.5" />
+              Back to Sign In
             </Link>
           </div>
         </>
