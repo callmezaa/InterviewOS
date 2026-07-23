@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { Play, Sparkles, Loader2, Plus, X, FileCode, FolderOpen, ChevronRight, Terminal, IndentIncrease } from 'lucide-react';
@@ -207,7 +206,6 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   const [langSelectorOpen, setLangSelectorOpen] = useState(false);
   const langSelectorRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
-  const [langDropdownPos, setLangDropdownPos] = useState({ top: 0, left: 0 });
   const [isAddingFile, setIsAddingFile] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [pendingDeleteFile, setPendingDeleteFile] = useState<WorkspaceFile | null>(null);
@@ -230,10 +228,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   useEffect(() => {
     if (!langSelectorOpen) return;
     const handler = (e: MouseEvent) => {
-      const target = e.target as Node;
-      const inButton = langSelectorRef.current?.contains(target);
-      const inDropdown = langDropdownRef.current?.contains(target);
-      if (!inButton && !inDropdown) {
+      if (langSelectorRef.current && !langSelectorRef.current.contains(e.target as Node)) {
         setLangSelectorOpen(false);
       }
     };
@@ -728,7 +723,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   }, [remoteCursors]);
 
   return (
-    <div className="flex flex-col w-full h-full bg-surface-black border border-white/[0.06] rounded-lg overflow-hidden select-none">
+    <div className="flex flex-col w-full h-full bg-surface-black border border-white/[0.06] rounded-lg select-none">
 
       {/* ── Toolbar ──────────────────────────────────────────────────────────── */}
       <div className="h-11 bg-surface-tile-2 border-b border-white/[0.06] px-2 sm:px-3 flex items-center justify-between shrink-0 gap-2">
@@ -755,16 +750,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
           <div ref={langSelectorRef} className="relative">
             <Tooltip content="Select language">
               <button
-                onClick={() => {
-                  if (!readOnly && !isRunning) {
-                    const willOpen = !langSelectorOpen;
-                    if (willOpen && langSelectorRef.current) {
-                      const rect = langSelectorRef.current.getBoundingClientRect();
-                      setLangDropdownPos({ top: rect.bottom + 4, left: rect.right - 180 });
-                    }
-                    setLangSelectorOpen(willOpen);
-                  }
-                }}
+                onClick={() => !readOnly && !isRunning && setLangSelectorOpen((p) => !p)}
                 disabled={readOnly || isRunning}
                 aria-label="Programming language"
                 aria-expanded={langSelectorOpen}
@@ -788,20 +774,14 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
               </button>
             </Tooltip>
             <AnimatePresence>
-              {langSelectorOpen && createPortal(
+              {langSelectorOpen && (
                 <motion.div
                   ref={langDropdownRef}
                   initial={{ opacity: 0, scale: 0.95, y: -4 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95, y: -4 }}
                   transition={{ duration: 0.12, ease: 'easeOut' }}
-                  style={{
-                    position: 'fixed',
-                    top: langDropdownPos.top,
-                    left: langDropdownPos.left,
-                    zIndex: 9999,
-                  }}
-                  className="w-[180px] bg-surface-tile-3 border border-white/[0.08] rounded-lg shadow-xl overflow-hidden"
+                  className="absolute right-0 top-full mt-1 z-50 w-[180px] bg-surface-tile-3 border border-white/[0.08] rounded-lg shadow-xl overflow-hidden"
                 >
                   {SUPPORTED_LANGUAGES.map((l, i) => {
                     const cfg = LANG_CONFIG[l.value];
@@ -825,8 +805,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
                       </button>
                     );
                   })}
-                </motion.div>,
-                document.body
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
