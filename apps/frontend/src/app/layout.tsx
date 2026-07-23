@@ -30,19 +30,18 @@ export const metadata: Metadata = {
   description: "Experience premium, cinematic realtime technical interviews powered by WebRTC signaling, collaborative coding, and AI-driven Whisper transcription.",
   authors: [{ name: "InterviewOS Team" }],
   keywords: ["interviews", "realtime", "webrtc", "coding editor", "whisper transcript", "ai feedback"],
-  manifest: "/manifest.json",
+  manifest: "/favicon/manifest.json",
   icons: {
     icon: [
-      { url: "/icons/icon-16x16.png", sizes: "16x16", type: "image/png" },
-      { url: "/icons/icon-32x32.png", sizes: "32x32", type: "image/png" },
-      { url: "/icons/icon-48x48.png", sizes: "48x48", type: "image/png" },
-      { url: "/icons/icon.svg", sizes: "any", type: "image/svg+xml" },
+      { url: "/favicon/favicon.ico", sizes: "any", type: "image/x-icon" },
+      { url: "/favicon/icon0.svg", sizes: "any", type: "image/svg+xml" },
+      { url: "/favicon/icon1.png", sizes: "192x192", type: "image/png" },
     ],
     apple: [
-      { url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { url: "/favicon/apple-icon.png", sizes: "180x180", type: "image/png" },
     ],
     other: [
-      { rel: "mask-icon", url: "/icons/icon.svg", color: "#0066cc" },
+      { rel: "mask-icon", url: "/favicon/icon0.svg", color: "#0066cc" },
     ],
   },
   other: {
