@@ -221,8 +221,6 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
 
   // Linting state
   const [lintingEnabled, setLintingEnabled] = useState(true);
-  const currentLang = activeFile?.language ?? language;
-  const isLintSupported = currentLang === 'javascript' || currentLang === 'typescript';
   const [diagnosticsPanelOpen, setDiagnosticsPanelOpen] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LintDiagnostic[]>([]);
   const lintDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -263,6 +261,8 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   }, [language]);
 
   const activeFile = files.find((f) => f.id === activeFileId) ?? files[0];
+  const currentLang = activeFile?.language ?? language;
+  const isLintSupported = currentLang === 'javascript' || currentLang === 'typescript';
 
   /** Switch active file, propagating its content/language to the parent */
   const switchToFile = useCallback(
