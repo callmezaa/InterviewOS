@@ -725,7 +725,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
           <span className="text-[11px] sm:text-[12px] text-body-muted/50 font-mono truncate max-w-[80px] sm:max-w-none">{activeFile?.name}</span>
         </div>
 
-        <div className="flex items-center gap-1 sm:gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-1 sm:gap-2">
           {/* Language selector — custom dropdown */}
           <div ref={langSelectorRef} className="relative">
             <Tooltip content="Select language">
