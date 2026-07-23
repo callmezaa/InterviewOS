@@ -207,6 +207,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   const [langSelectorOpen, setLangSelectorOpen] = useState(false);
   const langSelectorRef = useRef<HTMLDivElement>(null);
   const langDropdownRef = useRef<HTMLDivElement>(null);
+  const [langDropdownPos, setLangDropdownPos] = useState({ top: 0, left: 0 });
   const [isAddingFile, setIsAddingFile] = useState(false);
   const [newFileName, setNewFileName] = useState('');
   const [pendingDeleteFile, setPendingDeleteFile] = useState<WorkspaceFile | null>(null);
@@ -754,7 +755,16 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
           <div ref={langSelectorRef} className="relative">
             <Tooltip content="Select language">
               <button
-                onClick={() => !readOnly && !isRunning && setLangSelectorOpen((p) => !p)}
+                onClick={() => {
+                  if (!readOnly && !isRunning) {
+                    const willOpen = !langSelectorOpen;
+                    if (willOpen && langSelectorRef.current) {
+                      const rect = langSelectorRef.current.getBoundingClientRect();
+                      setLangDropdownPos({ top: rect.bottom + 4, left: rect.right - 180 });
+                    }
+                    setLangSelectorOpen(willOpen);
+                  }
+                }}
                 disabled={readOnly || isRunning}
                 aria-label="Programming language"
                 aria-expanded={langSelectorOpen}
@@ -778,7 +788,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
               </button>
             </Tooltip>
             <AnimatePresence>
-              {langSelectorOpen && langSelectorRef.current && createPortal(
+              {langSelectorOpen && createPortal(
                 <motion.div
                   ref={langDropdownRef}
                   initial={{ opacity: 0, scale: 0.95, y: -4 }}
@@ -787,8 +797,8 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
                   transition={{ duration: 0.12, ease: 'easeOut' }}
                   style={{
                     position: 'fixed',
-                    top: langSelectorRef.current.getBoundingClientRect().bottom + 4,
-                    left: langSelectorRef.current.getBoundingClientRect().right - 180,
+                    top: langDropdownPos.top,
+                    left: langDropdownPos.left,
                     zIndex: 9999,
                   }}
                   className="w-[180px] bg-surface-tile-3 border border-white/[0.08] rounded-lg shadow-xl overflow-hidden"
