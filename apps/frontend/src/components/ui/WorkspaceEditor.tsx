@@ -221,6 +221,8 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
 
   // Linting state
   const [lintingEnabled, setLintingEnabled] = useState(true);
+  const currentLang = activeFile?.language ?? language;
+  const isLintSupported = currentLang === 'javascript' || currentLang === 'typescript';
   const [diagnosticsPanelOpen, setDiagnosticsPanelOpen] = useState(false);
   const [diagnostics, setDiagnostics] = useState<LintDiagnostic[]>([]);
   const lintDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -525,53 +527,31 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
   // ── Real-time linting ───────────────────────────────────────────────────
   const runLinting = useCallback(
     (code: string, lang: string) => {
+      // Only lint JS/TS (Monaco handles diagnostics automatically)
+      if (lang !== 'javascript' && lang !== 'typescript') {
+        setDiagnostics([]);
+        const monaco = monacoRef.current;
+        const editor = editorRef.current;
+        if (monaco && editor) {
+          const model = editor.getModel();
+          if (model) monaco.editor.setModelMarkers(model, 'interviewos-lint', []);
+        }
+        return;
+      }
+
       if (!lintingEnabled) {
         setDiagnostics([]);
-        // Clear Monaco markers for non-JS/TS languages
-        if (lang !== 'javascript' && lang !== 'typescript') {
-          const monaco = monacoRef.current;
-          const editor = editorRef.current;
-          if (monaco && editor) {
-            const model = editor.getModel();
-            if (model) monaco.editor.setModelMarkers(model, 'interviewos-lint', []);
-          }
+        const monaco = monacoRef.current;
+        const editor = editorRef.current;
+        if (monaco && editor) {
+          const model = editor.getModel();
+          if (model) monaco.editor.setModelMarkers(model, 'interviewos-lint', []);
         }
         return;
       }
 
       // For JS/TS: Monaco handles diagnostics automatically
-      if (lang === 'javascript' || lang === 'typescript') {
-        setDiagnostics([]);
-        return;
-      }
-
-      // For Python/Go/Rust/C++: run custom linter
-      const results = lintCode(code, lang);
-      setDiagnostics(results);
-
-      // Set Monaco markers for visual squiggly lines
-      const monaco = monacoRef.current;
-      const editor = editorRef.current;
-      if (monaco && editor && !!editor.getModel()) {
-        const model = editor.getModel();
-        if (model) {
-          const markers = results.map((d) => ({
-            severity:
-              d.severity === 'error'
-                ? monaco.MarkerSeverity.Error
-                : d.severity === 'warning'
-                  ? monaco.MarkerSeverity.Warning
-                  : monaco.MarkerSeverity.Info,
-            message: d.message,
-            startLineNumber: d.line,
-            startColumn: d.column,
-            endLineNumber: d.endLine ?? d.line,
-            endColumn: d.endColumn ?? d.column + 10,
-            source: d.source || 'lint',
-          }));
-          monaco.editor.setModelMarkers(model, 'interviewos-lint', markers);
-        }
-      }
+      setDiagnostics([]);
     },
     [lintingEnabled],
   );
@@ -839,19 +819,24 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
             </Tooltip>
           )}
 
-          <Tooltip content={lintingEnabled ? 'Disable Linting' : 'Enable Linting'}>
+          <Tooltip content={!isLintSupported ? 'Lint only available for JavaScript/TypeScript' : lintingEnabled ? 'Disable Linting' : 'Enable Linting'}>
             <button
-              onClick={() => setLintingEnabled((v) => !v)}
+              onClick={() => isLintSupported && setLintingEnabled((v) => !v)}
+              disabled={!isLintSupported}
               className={`flex items-center gap-1 sm:gap-1.5 h-7 px-1.5 sm:px-2 border rounded-md transition-colors ${
-                lintingEnabled
-                  ? 'bg-green-400/10 border-green-400/20 text-green-400 hover:bg-green-400/15'
-                  : 'bg-white/[0.04] border-white/[0.06] text-body-muted/50 hover:text-body-muted hover:bg-white/[0.06]'
+                !isLintSupported
+                  ? 'bg-white/[0.02] border-white/[0.04] text-body-muted/25 cursor-not-allowed'
+                  : lintingEnabled
+                    ? 'bg-green-400/10 border-green-400/20 text-green-400 hover:bg-green-400/15'
+                    : 'bg-white/[0.04] border-white/[0.06] text-body-muted/50 hover:text-body-muted hover:bg-white/[0.06]'
               }`}
-              aria-label={lintingEnabled ? 'Disable linting' : 'Enable linting'}
+              aria-label={!isLintSupported ? 'Lint not available for this language' : lintingEnabled ? 'Disable linting' : 'Enable linting'}
             >
-              {lintingEnabled
-                ? <LintCheckIcon />
-                : <LintAlertIcon />}
+              {!isLintSupported
+                ? <LintAlertIcon />
+                : lintingEnabled
+                  ? <LintCheckIcon />
+                  : <LintAlertIcon />}
               <span className="text-[11px] sm:text-[12px] hidden xs:inline">Lint</span>
             </button>
           </Tooltip>
@@ -1047,7 +1032,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
       </div>
 
       {/* ── Diagnostics Panel ─────────────────────────────────────────────── */}
-      {lintingEnabled && (
+      {lintingEnabled && isLintSupported && (
         <DiagnosticsPanel
           diagnostics={diagnostics}
           isOpen={diagnosticsPanelOpen}
@@ -1064,7 +1049,7 @@ export const WorkspaceEditor: React.FC<WorkspaceEditorProps> = ({
             <Sparkles className="w-2.5 h-2.5 text-primary" />
             Monaco IntelliSense
           </span>
-          {lintingEnabled && diagnostics.length > 0 && (
+          {lintingEnabled && isLintSupported && diagnostics.length > 0 && (
             <span
               className={`flex items-center gap-1 cursor-pointer hover:text-white/50 transition-colors ${
                 diagnostics.some((d) => d.severity === 'error')
