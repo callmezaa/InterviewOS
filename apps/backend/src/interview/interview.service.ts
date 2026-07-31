@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt';
 import { RecurringService } from './recurring.service';
 import { ActivityService } from '../activity/activity.service';
 import * as bcrypt from 'bcrypt';
+import { randomUUID } from 'node:crypto';
 import type { CreateRecurrenceDto } from './dto/create-recurrence.dto';
 
 type InterviewWithParticipants = Prisma.InterviewGetPayload<{
@@ -276,8 +277,7 @@ export class InterviewService {
 
     if (interview.shareToken) return interview.shareToken;
 
-    const { nanoid } = await import('nanoid');
-    const token = nanoid(32);
+    const token = randomUUID().replace(/-/g, '');
 
     await this.prisma.interview.update({
       where: { id: interviewId },

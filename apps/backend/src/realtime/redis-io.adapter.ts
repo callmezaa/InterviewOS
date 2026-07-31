@@ -25,14 +25,14 @@ export class RedisIoAdapter extends CorsIoAdapter {
       lazyConnect: true,
       retryStrategy: (times) => Math.min(times * 100, 3000),
       enableReadyCheck: true,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null,
     });
 
     this.subClient = new Redis(redisUrl, {
       lazyConnect: true,
       retryStrategy: (times) => Math.min(times * 100, 3000),
       enableReadyCheck: true,
-      maxRetriesPerRequest: 3,
+      maxRetriesPerRequest: null,
     });
 
     this.pubClient.on('error', (err) =>
@@ -48,19 +48,34 @@ export class RedisIoAdapter extends CorsIoAdapter {
       this.redisLogger.log('Redis sub client connected'),
     );
 
-    this.connectWithRetry();
+    void this.connectWithRetry();
   }
 
   private async connectWithRetry(): Promise<void> {
+    if (!this.pubClient || !this.subClient) return;
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error('Redis connection timed out after 5s')),
+        5000,
+      ),
+    );
+
     try {
-      await this.pubClient?.connect();
-      await this.subClient?.connect();
+      await Promise.race([
+        Promise.all([this.pubClient.connect(), this.subClient.connect()]),
+        timeout,
+      ]);
       this.redisLogger.log('Redis clients connected successfully');
     } catch {
       this.redisLogger.warn(
         'Redis connection failed — Socket.IO will run without Redis adapter. ' +
           'Start Redis or set REDIS_URL to enable horizontal scaling.',
       );
+      this.pubClient.disconnect();
+      this.subClient.disconnect();
+      this.pubClient = null;
+      this.subClient = null;
     }
   }
 

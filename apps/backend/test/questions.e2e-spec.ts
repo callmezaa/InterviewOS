@@ -4,7 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma.service';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 
 describe('Questions (e2e)', () => {
   let app: INestApplication<App>;
@@ -16,6 +16,7 @@ describe('Questions (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
@@ -44,7 +45,10 @@ describe('Questions (e2e)', () => {
       return request(app.getHttpServer())
         .get('/api/templates')
         .expect(200)
-        .expect([]);
+        .expect((res) => {
+          expect(res.body).toHaveProperty('data');
+          expect(res.body.data).toEqual([]);
+        });
     });
   });
 

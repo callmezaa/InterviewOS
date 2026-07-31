@@ -3,6 +3,9 @@ import { InterviewService } from './interview.service';
 import { PrismaService } from '../prisma.service';
 import { AiService } from '../ai/ai.service';
 import { MailService } from '../mail/mail.service';
+import { CalendarService } from '../calendar/calendar.service';
+import { RecurringService } from './recurring.service';
+import { ActivityService } from '../activity/activity.service';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { NotFoundException } from '@nestjs/common';
@@ -91,6 +94,13 @@ describe('InterviewService', () => {
               findUnique: jest.fn(),
               update: jest.fn(),
             },
+            interviewTemplate: {
+              findUnique: jest.fn().mockResolvedValue(null),
+              update: jest.fn(),
+            },
+            organization: {
+              findUnique: jest.fn().mockResolvedValue(null),
+            },
           },
         },
         {
@@ -116,6 +126,25 @@ describe('InterviewService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn().mockReturnValue('http://localhost:3000'),
+          },
+        },
+        {
+          provide: CalendarService,
+          useValue: {
+            generateCalendarLinks: jest.fn().mockReturnValue({}),
+            generateIcs: jest.fn().mockReturnValue(''),
+          },
+        },
+        {
+          provide: RecurringService,
+          useValue: {
+            createPattern: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ActivityService,
+          useValue: {
+            log: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma.service';
 import { MailService } from '../mail/mail.service';
+import { MediaService } from '../media/media.service';
+import { ActivityService } from '../activity/activity.service';
 import { JwtService } from '@nestjs/jwt';
 import {
   ConflictException,
@@ -47,6 +49,15 @@ describe('AuthService', () => {
               create: jest.fn(),
               update: jest.fn(),
             },
+            session: {
+              create: jest.fn().mockResolvedValue({ id: 'session-1' }),
+              findUnique: jest.fn().mockResolvedValue(null),
+              findFirst: jest.fn().mockResolvedValue(null),
+              findMany: jest.fn().mockResolvedValue([]),
+              update: jest.fn(),
+              delete: jest.fn(),
+              deleteMany: jest.fn(),
+            },
             organization: {
               findUnique: jest.fn(),
             },
@@ -63,6 +74,18 @@ describe('AuthService', () => {
           useValue: {
             sendPasswordResetEmail: jest.fn().mockResolvedValue(undefined),
             sendEmailVerification: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: MediaService,
+          useValue: {
+            uploadAvatar: jest.fn().mockResolvedValue('mock-avatar-url'),
+          },
+        },
+        {
+          provide: ActivityService,
+          useValue: {
+            log: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],

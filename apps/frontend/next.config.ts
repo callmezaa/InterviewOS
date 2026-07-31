@@ -9,15 +9,17 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
 
   async rewrites() {
-    const apiDest = process.env.API_DEST_URL || 'http://localhost:3001';
-    return apiDest
-      ? [
-          {
-            source: '/api/:path*',
-            destination: `${apiDest}/api/:path*`,
-          },
-        ]
-      : [];
+    const useMock = process.env.NEXT_PUBLIC_USE_MOCK_API === "true";
+    const apiDest = process.env.API_DEST_URL || "http://localhost:3001";
+    if (useMock || !apiDest) return [];
+    return {
+      beforeFiles: [
+        {
+          source: "/api/:path*",
+          destination: `${apiDest}/api/:path*`,
+        },
+      ],
+    };
   },
 
   images: {

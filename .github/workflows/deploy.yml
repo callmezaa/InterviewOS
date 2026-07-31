@@ -318,7 +318,7 @@ jobs:
           URL="${{ github.ref == 'refs/heads/main' && vars.BACKEND_PRODUCTION_URL || vars.BACKEND_STAGING_URL }}"
           echo "🔍 Running smoke tests against $URL"
           curl -sf "$URL/api/health" > /dev/null && echo "✅ Health endpoint OK"
-          curl -sf "$URL/api/v1/questions?limit=1" > /dev/null && echo "✅ Questions endpoint OK"
+          curl -sf "$URL/api/questions?limit=1" > /dev/null && echo "✅ Questions endpoint OK"
         continue-on-error: true
       - name: Github Deployment status — success
         if: success()

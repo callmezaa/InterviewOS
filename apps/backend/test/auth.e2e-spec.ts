@@ -4,7 +4,7 @@ import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
 import { PrismaService } from '../src/prisma.service';
-import * as cookieParser from 'cookie-parser';
+import cookieParser from 'cookie-parser';
 import * as bcrypt from 'bcrypt';
 
 jest.mock('bcrypt');
@@ -19,6 +19,7 @@ describe('Auth (e2e)', () => {
     }).compile();
 
     app = moduleFixture.createNestApplication();
+    app.setGlobalPrefix('api');
     app.use(cookieParser());
     app.useGlobalPipes(
       new ValidationPipe({
@@ -39,10 +40,10 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  describe('GET /', () => {
-    it('returns health check', () => {
+  describe('GET /api', () => {
+    it('returns root', () => {
       return request(app.getHttpServer())
-        .get('/')
+        .get('/api')
         .expect(200)
         .expect('Hello World!');
     });
