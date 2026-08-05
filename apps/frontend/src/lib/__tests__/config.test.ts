@@ -21,10 +21,10 @@ describe('config', () => {
       expect(API_URL).toBe('https://api.example.com/api');
     });
 
-    it('falls back to localhost:3001/api when env is not set', async () => {
+    it('falls back to /api (Next proxy rewrite) when env is not set', async () => {
       delete process.env.NEXT_PUBLIC_API_URL;
       const { API_URL } = await import('../config');
-      expect(API_URL).toBe('http://localhost:3001/api');
+      expect(API_URL).toBe('/api');
     });
   });
 

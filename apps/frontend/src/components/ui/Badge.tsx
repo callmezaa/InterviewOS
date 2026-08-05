@@ -19,6 +19,17 @@ const badgeVariants = cva(
         ghost:
           "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
         link: "text-primary underline-offset-4 hover:underline",
+        primary: "bg-primary/10 border-primary/20 text-primary-on-dark",
+        success: "bg-success/10 border-success/20 text-success-soft",
+        warning: "bg-warning/10 border-warning/20 text-warning-soft",
+        danger: "bg-danger/10 border-danger/20 text-danger-soft",
+        neutral: "bg-white/[0.04] border-white/[0.06] text-white/60",
+        solid: "bg-primary text-on-primary-solid",
+      },
+      size: {
+        sm: "px-1.5 py-0.5 text-[9px] font-mono",
+        md: "px-2.5 py-0.5 text-[11px] font-mono",
+        lg: "px-3 py-1 text-[11px] font-mono",
       },
     },
     defaultVariants: {
@@ -30,6 +41,7 @@ const badgeVariants = cva(
 function Badge({
   className,
   variant = "default",
+  size,
   dot,
   dotColor,
   render,
@@ -47,7 +59,7 @@ function Badge({
     defaultTagName: "span",
     props: mergeProps<"span">(
       {
-        className: cn(badgeVariants({ variant }), className),
+        className: cn(badgeVariants({ variant, size }), className),
         children: dotElement ? <>{dotElement}{children}</> : children,
       },
       props

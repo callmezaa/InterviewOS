@@ -17,9 +17,9 @@ describe('Button', () => {
   it('applies variant classes correctly', () => {
     const variants = [
       { variant: 'primary' as const, expectedClass: 'bg-primary' },
-      { variant: 'secondary' as const, expectedClass: 'bg-white/[0.03]' },
-      { variant: 'ghost' as const, expectedClass: 'bg-transparent' },
-      { variant: 'danger' as const, expectedClass: 'bg-red-600' },
+      { variant: 'secondary' as const, expectedClass: 'bg-secondary' },
+      { variant: 'ghost' as const, expectedClass: 'hover:bg-muted' },
+      { variant: 'danger' as const, expectedClass: 'bg-destructive' },
     ];
 
     variants.forEach(({ variant, expectedClass }) => {

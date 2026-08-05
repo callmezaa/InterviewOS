@@ -33,7 +33,7 @@ describe('Input', () => {
   it('applies error styles when error is boolean true', () => {
     const { container } = render(<Input error />);
     const input = container.querySelector('input');
-    expect(input).toHaveClass('border-red-500/30');
+    expect(input).toHaveClass('aria-invalid:border-destructive');
   });
 
   it('renders password toggle button for password type', () => {

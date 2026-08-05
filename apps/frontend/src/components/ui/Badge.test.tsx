@@ -10,15 +10,15 @@ describe('Badge', () => {
 
   it('applies default variant classes', () => {
     const { container } = render(<Badge>Default</Badge>);
-    expect(container.firstChild).toHaveClass('bg-white/[0.02]');
+    expect(container.firstChild).toHaveClass('bg-primary');
   });
 
   it('applies variant classes correctly', () => {
     const variants = [
       { variant: 'primary' as const, expectedClass: 'bg-primary/10' },
-      { variant: 'success' as const, expectedClass: 'bg-emerald-400/10' },
-      { variant: 'warning' as const, expectedClass: 'bg-amber-400/10' },
-      { variant: 'danger' as const, expectedClass: 'bg-red-500/10' },
+      { variant: 'success' as const, expectedClass: 'bg-success/10' },
+      { variant: 'warning' as const, expectedClass: 'bg-warning/10' },
+      { variant: 'danger' as const, expectedClass: 'bg-danger/10' },
       { variant: 'neutral' as const, expectedClass: 'bg-white/[0.04]' },
       { variant: 'solid' as const, expectedClass: 'bg-primary' },
     ];
@@ -69,6 +69,6 @@ describe('Badge', () => {
 
   it('uses rounded-pill class for pill shape', () => {
     const { container } = render(<Badge>Pill</Badge>);
-    expect(container.firstChild).toHaveClass('rounded-pill');
+    expect(container.firstChild).toHaveClass('rounded-4xl');
   });
 });

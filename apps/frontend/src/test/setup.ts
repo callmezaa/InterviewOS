@@ -60,6 +60,38 @@ Object.defineProperty(globalThis, 'ResizeObserver', {
   },
 });
 
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: (query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  }),
+});
+
+const create2DContext = (() =>
+  new Proxy({}, {
+    get(_target: unknown, prop: string | symbol) {
+      if (prop === 'canvas') return document.createElement('canvas');
+      if (prop === 'measureText') return () => ({ width: 0 });
+      if (prop === 'getImageData') return () => ({ data: [] });
+      if (prop === 'createLinearGradient' || prop === 'createRadialGradient')
+        return () => ({ addColorStop: () => {} });
+      return () => {};
+    },
+    set(target: unknown, prop: string | symbol, value: unknown) {
+      (target as Record<string | symbol, unknown>)[prop] = value;
+      return true;
+    },
+  })) as unknown as HTMLCanvasElement['getContext'];
+
+HTMLCanvasElement.prototype.getContext = create2DContext;
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'warn' }));
 afterEach(() => {
   cleanup();

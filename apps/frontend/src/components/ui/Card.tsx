@@ -2,17 +2,42 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+const cardVariants: Record<string, string> = {
+  default: "bg-surface-tile-1/40 border border-white/[0.06]",
+  interactive:
+    "bg-surface-tile-1/40 border border-white/[0.06] cursor-pointer hover:bg-surface-tile-1/60 hover:border-white/[0.1]",
+  elevated:
+    "bg-surface-tile-2/95 border border-white/[0.06] shadow-[var(--shadow-card-elevated)]",
+  ghost:
+    "bg-white/[0.01] border border-white/[0.06] shadow-[var(--shadow-card-ghost)]",
+};
+
+const cardPaddings: Record<string, string> = {
+  none: "",
+  sm: "p-4",
+  md: "p-6",
+  lg: "p-8",
+};
+
 function Card({
   className,
   size = "default",
+  variant = "default",
+  padding,
   ...props
-}: React.ComponentProps<"div"> & { size?: "default" | "sm" }) {
+}: React.ComponentProps<"div"> & {
+  size?: "default" | "sm";
+  variant?: string;
+  padding?: string;
+}) {
   return (
     <div
       data-slot="card"
       data-size={size}
       className={cn(
         "group/card flex flex-col gap-(--card-spacing) overflow-hidden rounded-xl bg-card py-(--card-spacing) text-sm text-card-foreground ring-1 ring-foreground/10 [--card-spacing:--spacing(4)] has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:[--card-spacing:--spacing(3)] data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
+        variant && cardVariants[variant],
+        padding && cardPaddings[padding],
         className
       )}
       {...props}

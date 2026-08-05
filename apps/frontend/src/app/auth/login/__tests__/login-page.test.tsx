@@ -147,7 +147,7 @@ describe('LoginPage', () => {
 
   it('renders forgot password link', async () => {
     await renderLoginPage();
-    const forgotLink = screen.getByRole('link', { name: /forgot password/i });
+    const forgotLink = screen.getByRole('link', { name: /forgot/i });
     expect(forgotLink).toBeInTheDocument();
     expect(forgotLink).toHaveAttribute('href', '/auth/forgot-password');
   });

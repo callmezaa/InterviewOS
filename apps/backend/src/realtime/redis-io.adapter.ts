@@ -9,6 +9,9 @@ export class RedisIoAdapter extends CorsIoAdapter {
   private readonly redisLogger = new Logger(RedisIoAdapter.name);
   private pubClient: Redis | null = null;
   private subClient: Redis | null = null;
+  private socketServer: ReturnType<CorsIoAdapter['createIOServer']> | null =
+    null;
+  private redisReady = false;
 
   constructor(app: INestApplication, configService: ConfigService) {
     super(app, configService);
@@ -67,6 +70,8 @@ export class RedisIoAdapter extends CorsIoAdapter {
         timeout,
       ]);
       this.redisLogger.log('Redis clients connected successfully');
+      this.redisReady = true;
+      this.attachRedisAdapter();
     } catch {
       this.redisLogger.warn(
         'Redis connection failed — Socket.IO will run without Redis adapter. ' +
@@ -79,17 +84,19 @@ export class RedisIoAdapter extends CorsIoAdapter {
     }
   }
 
+  private attachRedisAdapter(): void {
+    if (!this.pubClient || !this.subClient || !this.socketServer) return;
+    const redisAdapter = createAdapter(this.pubClient, this.subClient);
+    this.socketServer.adapter(redisAdapter);
+    this.redisLogger.log(
+      'Socket.IO Redis adapter attached for horizontal scaling',
+    );
+  }
+
   createIOServer(port: number, options?: ServerOptions) {
     const server = super.createIOServer(port, options);
-
-    if (this.pubClient && this.subClient) {
-      const redisAdapter = createAdapter(this.pubClient, this.subClient);
-      server.adapter(redisAdapter);
-      this.redisLogger.log(
-        'Socket.IO Redis adapter attached for horizontal scaling',
-      );
-    }
-
+    this.socketServer = server;
+    if (this.redisReady) this.attachRedisAdapter();
     return server;
   }
 

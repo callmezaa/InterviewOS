@@ -24,6 +24,7 @@ export default function LoginPage() {
 
   const [twoFactorTempToken, setTwoFactorTempToken] = useState<string | null>(null);
   const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [verificationEmail, setVerificationEmail] = useState<string | null>(null);
 
   const emailId = useId();
   const passwordId = useId();
@@ -36,6 +37,7 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setVerificationEmail(null);
     try {
       const response = await fetch(`${API_URL}/auth/login`, {
         method: 'POST',
@@ -54,6 +56,11 @@ export default function LoginPage() {
 
       if (!response.ok) {
         const data = await response.json().catch(() => null);
+        if (data?.code === 'EMAIL_NOT_VERIFIED') {
+          setVerificationEmail(email);
+          setLoading(false);
+          return;
+        }
         throw new Error(data?.message || `Request failed (${response.status})`);
       }
 
@@ -168,6 +175,19 @@ export default function LoginPage() {
   return (
     <AuthLayout heading="Welcome back">
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        {verificationEmail && (
+          <div className="flex flex-col gap-1.5 rounded-lg border border-warning/30 bg-warning/10 p-3">
+            <p className="text-[13px] text-warning-soft leading-relaxed">
+              Email not verified yet. Please verify your email to continue.
+            </p>
+            <Link
+              href={`/auth/resend-verification?email=${encodeURIComponent(verificationEmail)}`}
+              className="text-[12px] text-warning-soft underline underline-offset-2 transition-colors hover:text-warning"
+            >
+              Resend verification link
+            </Link>
+          </div>
+        )}
         <div className="flex flex-col gap-1.5">
           <label htmlFor={emailId} className="text-[12px] text-white/40 font-medium">
             Email
