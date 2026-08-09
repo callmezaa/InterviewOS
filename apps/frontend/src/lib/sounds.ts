@@ -12,6 +12,27 @@ function resumeCtx() {
   if (c.state === 'suspended') c.resume();
 }
 
+let unlocked = false;
+
+function unlockOnGesture() {
+  if (unlocked) return;
+  unlocked = true;
+  resumeCtx();
+}
+
+// AudioContext created outside a user gesture starts 'suspended' and every
+// resume() will be rejected/no-op until the tab has seen a gesture. Register a
+// one-time listener so the context is unlocked on the first click/keypress.
+if (typeof window !== 'undefined') {
+  const unlock = () => {
+    unlockOnGesture();
+    window.removeEventListener('pointerdown', unlock);
+    window.removeEventListener('keydown', unlock);
+  };
+  window.addEventListener('pointerdown', unlock);
+  window.addEventListener('keydown', unlock);
+}
+
 interface ToneOptions {
   frequency: number;
   duration: number;

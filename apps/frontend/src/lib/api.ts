@@ -1,5 +1,4 @@
 import { API_URL } from './config';
-import { getTokenFromCookie } from './authFetch';
 
 export class ApiError extends Error {
   status: number;
@@ -38,37 +37,6 @@ const DEFAULTS: ApiConfig = {
   headers: { 'Content-Type': 'application/json' },
 };
 
-let isRefreshing = false;
-let refreshPromise: Promise<boolean> | null = null;
-
-async function tryRefreshToken(baseUrl: string): Promise<boolean> {
-  if (isRefreshing && refreshPromise) return refreshPromise;
-
-  isRefreshing = true;
-  refreshPromise = (async () => {
-    try {
-      const res = await fetch(`${baseUrl}/auth/refresh`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-      });
-      if (!res.ok) return false;
-      const data = await res.json();
-      if (data.token) {
-        document.cookie = `token=${data.token}; path=/; max-age=86400; SameSite=Lax`;
-      }
-      return true;
-    } catch {
-      return false;
-    } finally {
-      isRefreshing = false;
-      refreshPromise = null;
-    }
-  })();
-
-  return refreshPromise;
-}
-
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
 }
@@ -89,10 +57,6 @@ async function request<T>(
   }
 
   const headers: Record<string, string> = { ...DEFAULTS.headers, ...options?.headers };
-  const token = getTokenFromCookie();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
-  }
 
   const maxRetries = options?.retries ?? DEFAULTS.retries;
   const baseDelay = options?.baseDelay ?? DEFAULTS.baseDelay;
@@ -147,14 +111,6 @@ async function request<T>(
           (data && typeof data === 'object' && 'error' in data
             ? (data as Record<string, unknown>).error
             : undefined) as string | undefined;
-
-        if (response.status === 401 && !options?.headers?.['X-Skip-Refresh']) {
-          const refreshed = await tryRefreshToken(baseUrl);
-          if (refreshed) {
-            const retryOptions = { ...options, headers: { ...options?.headers, 'X-Skip-Refresh': '1' } };
-            return request<T>(method, path, body, retryOptions);
-          }
-        }
 
         if (response.status >= 400 && response.status < 500) {
           throw new ApiError(

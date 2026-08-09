@@ -6,7 +6,6 @@ import { useInterviewStore, InterviewDetails } from '../store/useInterviewStore'
 import { toast } from '../store/useToastStore';
 import { useActionHistory } from '../store/useActionHistoryStore';
 import { API_URL } from '../lib/config';
-import { authFetch } from '../lib/authFetch';
 import { fetchTemplate } from '../lib/templates';
 
 
@@ -123,7 +122,7 @@ export function useDashboard() {
   const fetchInterviews = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await authFetch(`${API_URL}/interviews`, {});
+      const response = await fetch(`${API_URL}/interviews`, {});
       const data = await response.json();
       if (!response.ok) throw new Error(data.message || 'Failed to fetch interviews');
       setInterviews(data);
@@ -188,7 +187,7 @@ export function useDashboard() {
     }
 
     try {
-      const response = await authFetch(`${API_URL}/interviews`, {
+      const response = await fetch(`${API_URL}/interviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -207,7 +206,7 @@ export function useDashboard() {
         label: 'Interview scheduled',
         description: `"${ivTitle}" has been added.`,
         undo: async () => {
-          const res = await authFetch(`${API_URL}/interviews/${created.id}`, {
+          const res = await fetch(`${API_URL}/interviews/${created.id}`, {
             method: 'DELETE',
           });
           if (!res.ok) throw new Error('Undo failed');
@@ -237,7 +236,7 @@ export function useDashboard() {
     );
 
     try {
-      const response = await authFetch(`${API_URL}/interviews/${id}/status`, {
+      const response = await fetch(`${API_URL}/interviews/${id}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'CANCELLED' }),
@@ -249,7 +248,7 @@ export function useDashboard() {
         label: 'Interview cancelled',
         description: `"${iv.title}" has been cancelled.`,
         undo: async () => {
-          const res = await authFetch(`${API_URL}/interviews/${id}/status`, {
+          const res = await fetch(`${API_URL}/interviews/${id}/status`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ status: currentStatus }),
@@ -274,7 +273,7 @@ export function useDashboard() {
     setInterviews((prev) => prev.filter((i) => i.id !== id));
 
     try {
-      const response = await authFetch(`${API_URL}/interviews/${id}`, {
+      const response = await fetch(`${API_URL}/interviews/${id}`, {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete');

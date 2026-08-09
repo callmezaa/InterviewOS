@@ -12,6 +12,8 @@ export const useRecording = (interviewId?: string) => {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const recordedChunks = useRef<Blob[]>([]);
   const recordingStartTime = useRef<number>(0);
+  const capturedStreamRef = useRef<MediaStream | null>(null);
+  const ownsCapturedStreamRef = useRef(false);
 
   // ── Upload final blob to backend ────────────────────────────────────────────
   const uploadToBackend = useCallback(
@@ -54,9 +56,12 @@ export const useRecording = (interviewId?: string) => {
       recordedChunks.current = [];
 
       let captureStream: MediaStream;
+      ownsCapturedStreamRef.current = false;
 
       // Prefer active screen share; otherwise prompt for it; fall back to camera
       if (screenStream) {
+        // User is sharing independently — record from it but DON'T stop its
+        // tracks at the end; only the user's toggle may end the share.
         captureStream = screenStream;
       } else {
         try {
@@ -66,6 +71,7 @@ export const useRecording = (interviewId?: string) => {
           });
           setScreenStream(displayStream);
           captureStream = displayStream;
+          ownsCapturedStreamRef.current = true;
         } catch {
           if (localStream) {
             captureStream = localStream;
@@ -75,6 +81,7 @@ export const useRecording = (interviewId?: string) => {
           }
         }
       }
+      capturedStreamRef.current = captureStream;
 
       // Pick the best supported codec
       const mimeType = [
@@ -122,11 +129,16 @@ export const useRecording = (interviewId?: string) => {
           }, 1000);
         }
 
-        // Stop screen share tracks if we started them
-        if (screenStream) {
-          screenStream.getTracks().forEach((t) => t.stop());
+        // Stop the captured stream's tracks only if the recorder started it
+        // itself (getDisplayMedia fallback). A user-initiated screen share or
+        // the camera stream is owned elsewhere — killing it here would yank
+        // the participant's ongoing screen share out from under them.
+        if (ownsCapturedStreamRef.current && capturedStreamRef.current) {
+          capturedStreamRef.current.getTracks().forEach((t) => t.stop());
           setScreenStream(null);
         }
+        capturedStreamRef.current = null;
+        ownsCapturedStreamRef.current = false;
       };
 
       // Collect a chunk every 2 seconds

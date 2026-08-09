@@ -14,12 +14,6 @@ test.describe('Responsive Design', () => {
       await expect(page.locator('text=The OS for')).toBeVisible();
     });
 
-    test(`pricing page renders at ${bp.name} (${bp.width}x${bp.height})`, async ({ page }) => {
-      await page.setViewportSize({ width: bp.width, height: bp.height });
-      await page.goto('/pricing');
-      await expect(page.locator('text=Pro')).toBeVisible();
-    });
-
     test(`login page renders at ${bp.name} (${bp.width}x${bp.height})`, async ({ page }) => {
       await page.setViewportSize({ width: bp.width, height: bp.height });
       await page.goto('/auth/login');

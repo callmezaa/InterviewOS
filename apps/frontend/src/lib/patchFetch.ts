@@ -1,4 +1,8 @@
-import { getTokenFromCookie } from './authFetch';
+export function getTokenFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/(?:^|;\s*)token=([^;]*)/);
+  return match ? match[1] : null;
+}
 
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
@@ -71,4 +75,8 @@ export function patchGlobalFetch() {
 
     return res;
   };
+}
+
+if (typeof window !== 'undefined') {
+  patchGlobalFetch();
 }

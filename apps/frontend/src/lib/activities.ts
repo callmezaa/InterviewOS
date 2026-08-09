@@ -1,5 +1,4 @@
 import { API_URL } from './config';
-import { authFetch } from './authFetch';
 
 export type ActivityType =
   | 'interview_scheduled'
@@ -45,7 +44,7 @@ export async function fetchActivities(filters: ActivityFilters = {}): Promise<Pa
   Object.entries(filters).forEach(([key, val]) => {
     if (val !== undefined && val !== '') params.set(key, String(val));
   });
-  const res = await authFetch(`${API_URL}/activities?${params.toString()}`, {});
+  const res = await fetch(`${API_URL}/activities?${params.toString()}`, {});
   if (!res.ok) {
     const err = await res.json().catch(() => ({ message: res.statusText }));
     throw new Error(err.message || `Failed to fetch activities: ${res.status}`);

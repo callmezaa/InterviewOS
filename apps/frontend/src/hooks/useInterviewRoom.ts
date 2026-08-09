@@ -42,6 +42,8 @@ export function useInterviewRoom() {
 
   const [mounted, setMounted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [invitePending, setInvitePending] = useState(false);
+  const [interviewLoadError, setInterviewLoadError] = useState(false);
   const [activeTab, setActiveTab] = useState<'transcript' | 'chat' | 'copilot' | 'proctoring' | 'notes'>('transcript');
   const [evaluating, setEvaluating] = useState(false);
   const [showProctoringWarning, setShowProctoringWarning] = useState(false);
@@ -53,8 +55,10 @@ export function useInterviewRoom() {
     stdout?: string; stderr?: string; error?: string; code?: number; hasRun: boolean;
   }>({ hasRun: false });
   const [telemetry, setTelemetry] = useState<{
-    executionTimeMs: number; memoryMb: number; cpuPoints: number[];
-    memoryPoints: number[]; timeComplexity: string; spaceComplexity: string; optimizations: string[];
+    executionTimeMs: number;
+    timeComplexity: string;
+    spaceComplexity: string;
+    optimizations: string[];
   } | null>(null);
 
   const [isGeneratingCopilot, setIsGeneratingCopilot] = useState(false);
@@ -85,12 +89,20 @@ export function useInterviewRoom() {
   const [testWatchMode, setTestWatchMode] = useState(false);
   const testWatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const prevTemplateKeyRef = useRef<string>('');
+
   useEffect(() => {
     if (!activeInterview?.language) return;
+    const key = `${activeInterview.id}:${activeInterview.language}`;
+    // Only seed the test template when the interview or its language changes.
+    // Regenerating on every keystroke of codeContent would clobber the test
+    // code the candidate is actively writing.
+    if (prevTemplateKeyRef.current === key) return;
+    prevTemplateKeyRef.current = key;
     const code = activeInterview.codeContent || '';
     setTestCode(generateTestTemplate(code, activeInterview.language));
     setTestResults([]);
-  }, [activeInterview?.language, activeInterview?.codeContent]);
+  }, [activeInterview?.language, activeInterview?.codeContent, activeInterview?.id]);
 
   // Watch mode: auto-run tests with debounce on code change
   useEffect(() => {
@@ -110,6 +122,15 @@ export function useInterviewRoom() {
   const lastCursorEmitRef = useRef<number>(0);
   const lastEditorCursorEmitRef = useRef<number>(0);
   const lastProctoringEmitRef = useRef<Record<string, number>>({});
+  const codeEmitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    // Flush cancel the debounced code broadcast on unmount so a late emit
+    // doesn't fire after the room hook is torn down.
+    return () => {
+      if (codeEmitTimerRef.current) clearTimeout(codeEmitTimerRef.current);
+    };
+  }, []);
 
   const handleProctoringAcknowledge = useCallback((reason: string) => {
     setShowProctoringWarning(false);
@@ -129,6 +150,7 @@ export function useInterviewRoom() {
       const urlParams = new URLSearchParams(window.location.search);
       const inviteToken = urlParams.get('token');
       if (inviteToken) {
+        setInvitePending(true);
         (async () => {
           try {
             const res = await fetch(`${API_URL}/auth/login-with-token`, {
@@ -146,6 +168,8 @@ export function useInterviewRoom() {
             window.history.replaceState({}, '', newUrl);
           } catch (e) {
             console.error('[Auth] Failed to process candidate invite token:', e);
+          } finally {
+            setInvitePending(false);
           }
         })();
       }
@@ -153,8 +177,8 @@ export function useInterviewRoom() {
   }, []);
 
   useEffect(() => {
-    if (mounted && !user) router.push('/auth/login');
-  }, [mounted, user, router]);
+    if (mounted && !user && !invitePending) router.push('/auth/login');
+  }, [mounted, user, invitePending, router]);
 
   useEffect(() => {
     const interval = setInterval(() => setElapsedSeconds((p) => p + 1), 1000);
@@ -245,6 +269,7 @@ export function useInterviewRoom() {
   useEffect(() => {
     const fetchDetails = async () => {
       try {
+        setInterviewLoadError(false);
         const response = await fetch(`${API_URL}/interviews/${roomId}`, {
           credentials: 'include',
         });
@@ -254,20 +279,18 @@ export function useInterviewRoom() {
           if (data.whiteboardShapes) setWhiteboardShapes(data.whiteboardShapes as WhiteboardShape[]);
           if (data.proctoringLogs) setProctoringLogs(data.proctoringLogs);
         } else {
-          throw new Error('Interview not found');
+          throw new Error(data?.message || 'Interview not found');
         }
       } catch {
-        setActiveInterview({
-          id: roomId, title: 'System Architecture & WebRTC Optimization',
-          description: 'Technical evaluation covering socket signaling, audio levels, and compiler scripts.',
-          status: 'ACTIVE', scheduledTime: new Date().toISOString(),
-          codeContent: '// Write collaborative code in JavaScript...\n\nfunction calculateThroughput(connections) {\n  return connections.reduce((acc, curr) => acc + curr.bps, 0);\n}',
-          language: 'javascript', transcript: [],
-        });
+        // Never fabricate an interview; surface the failure so the UI can
+        // render a real error state instead of a fake "active" room.
+        setInterviewLoadError(true);
       }
     };
-    if (roomId) fetchDetails();
-  }, [roomId]);
+    // Wait for auth (e.g. candidate invite-token login) so we never fire a
+    // doomed 401 request against the room the candidate was just signed in to.
+    if (roomId && user) fetchDetails();
+  }, [roomId, user]);
 
   useEffect(() => {
     if (!isRecording || !socket || !localStream || !user) return;
@@ -363,6 +386,7 @@ export function useInterviewRoom() {
     if (!activeInterview || isRunningCode) return;
     setIsRunningCode(true);
     setIsConsoleOpen(true);
+    const startedAt = Date.now();
     try {
       const res = await fetch(`${API_URL}/interviews/run-code`, {
         method: 'POST',
@@ -389,15 +413,12 @@ export function useInterviewRoom() {
             optimizations = cData.optimizations || [];
           }
         } catch { /* ignore */ }
-        const lang = activeInterview.language.toLowerCase();
-        const baseExec = lang.includes('c++') || lang.includes('rust') || lang.includes('go') ? 2 : 12;
-        const execTime = Math.floor(Math.random() * 15) + baseExec;
-        const memory = parseFloat((Math.random() * 8 + 14).toFixed(2));
-        const cpuPoints = Array.from({ length: 8 }, () => Math.floor(Math.random() * 40) + 10);
-        cpuPoints[2] = Math.floor(Math.random() * 30) + 60;
-        cpuPoints[3] = Math.floor(Math.random() * 20) + 40;
-        const memoryPoints = Array.from({ length: 8 }, (_, i) => Math.floor(memory + (Math.sin(i) * 0.5)));
-        setTelemetry({ executionTimeMs: execTime, memoryMb: memory, cpuPoints, memoryPoints, timeComplexity, spaceComplexity, optimizations });
+        setTelemetry({
+          executionTimeMs: Date.now() - startedAt,
+          timeComplexity,
+          spaceComplexity,
+          optimizations,
+        });
         setConsoleTab('telemetry');
       } else {
         setTelemetry(null);
@@ -461,10 +482,18 @@ export function useInterviewRoom() {
     return () => clearInterval(interval);
   }, [activeTab, transcriptItems.length, activeInterview?.codeContent]);
 
-  const handleCodeChangeLocal = useCallback((codeContent: string) => {
-    updateInterviewCode(codeContent);
-    if (socket) socket.emit('code-change', { interviewId: roomId, codeContent });
-  }, [socket, roomId, updateInterviewCode]);
+  const handleCodeChangeLocal = useCallback(
+    (codeContent: string) => {
+      updateInterviewCode(codeContent);
+      // Debounce the broadcast: each keystroke otherwise floods the room and
+      // triggers an unnecessary DB write + history checkpoint on the server.
+      if (codeEmitTimerRef.current) clearTimeout(codeEmitTimerRef.current);
+      codeEmitTimerRef.current = setTimeout(() => {
+        if (socket) socket.emit('code-change', { interviewId: roomId, codeContent });
+      }, 300);
+    },
+    [socket, roomId, updateInterviewCode],
+  );
 
   const handleLanguageChangeLocal = useCallback((language: string) => {
     updateInterviewLanguage(language);
@@ -561,6 +590,7 @@ export function useInterviewRoom() {
   useEffect(() => {
     if (!user || user.role !== 'CANDIDATE') return;
     let hasLostFocus = false;
+    let blurTimer: ReturnType<typeof setTimeout> | null = null;
     const emitProctoringEvent = (eventType: string) => {
       if (!socket) return;
       const now = Date.now();
@@ -569,8 +599,16 @@ export function useInterviewRoom() {
       lastProctoringEmitRef.current[eventType] = now;
       socket.emit('proctoring-event', { interviewId: roomId, userId: user.id, userName: user.name, eventType });
     };
-    const handleBlur = () => { hasLostFocus = true; };
+    const handleBlur = () => {
+      hasLostFocus = true;
+      // Debounce focus loss to filter out system dialogs/popups
+      blurTimer = setTimeout(() => {
+        if (document.visibilityState === 'hidden') return; // Handled by visibilitychange
+        emitProctoringEvent('focus-lost');
+      }, 300);
+    };
     const handleFocus = () => {
+      if (blurTimer) { clearTimeout(blurTimer); blurTimer = null; }
       if (hasLostFocus) {
         hasLostFocus = false;
         setShowProctoringWarning(true);
@@ -585,6 +623,7 @@ export function useInterviewRoom() {
     window.addEventListener('focus', handleFocus);
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => {
+      if (blurTimer) clearTimeout(blurTimer);
       window.removeEventListener('blur', handleBlur);
       window.removeEventListener('focus', handleFocus);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -641,6 +680,7 @@ export function useInterviewRoom() {
   return {
     roomId, user, isInterviewer, isMobile,
     mounted, loading: !activeInterview,
+    interviewLoadError,
     activeInterview,
     localStream, screenStream, peers, chatMessages, transcriptItems,
     isLocalAudioMuted, isLocalVideoMuted, isLocalSpeaking,

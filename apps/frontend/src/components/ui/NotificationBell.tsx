@@ -8,7 +8,6 @@ import { useBranding } from '../providers/BrandingProvider';
 import { playSound } from '../../lib/sounds';
 import { useSoundStore } from '../../store/useSoundStore';
 import { useInterviewStore } from '../../store/useInterviewStore';
-import { authFetch } from '../../lib/authFetch';
 
 interface Notification {
   id: string;
@@ -50,8 +49,8 @@ export function NotificationBell() {
     if (!user || user.isGuest) return;
     try {
       const [notifsRes, countRes] = await Promise.all([
-        authFetch(`${API_URL}/notifications`, {}),
-        authFetch(`${API_URL}/notifications/unread-count`, {}),
+        fetch(`${API_URL}/notifications`, {}),
+        fetch(`${API_URL}/notifications/unread-count`, {}),
       ]);
       if (notifsRes.ok) {
         const data = await notifsRes.json();
@@ -90,7 +89,7 @@ export function NotificationBell() {
 
   const markAsRead = async (id: string) => {
     try {
-      await authFetch(`${API_URL}/notifications/${id}/read`, {
+      await fetch(`${API_URL}/notifications/${id}/read`, {
         method: 'PUT',
       });
       setNotifications((prev) =>
@@ -103,7 +102,7 @@ export function NotificationBell() {
   const markAllAsRead = async () => {
     setLoading(true);
     try {
-      await authFetch(`${API_URL}/notifications/read-all`, {
+      await fetch(`${API_URL}/notifications/read-all`, {
         method: 'PUT',
       });
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));

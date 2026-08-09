@@ -14,7 +14,6 @@ import { IllustrationActivity } from '../ui/Illustrations';
 import { fetchActivities, type ActivityItem, type ActivityType } from '../../lib/activities';
 import { API_URL } from '../../lib/config';
 import { useInterviewStore, type InterviewDetails } from '../../store/useInterviewStore';
-import { authFetch } from '../../lib/authFetch';
 
 const ICON_MAP: Record<ActivityType, React.ElementType> = {
   interview_scheduled: CalendarPlus,

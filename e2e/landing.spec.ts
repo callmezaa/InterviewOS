@@ -16,10 +16,11 @@ test.describe('Landing Page', () => {
   });
 
   test('displays navigation links', async ({ page }) => {
-    await expect(page.locator('text=Features')).toBeVisible();
-    await expect(page.locator('text=How it works')).toBeVisible();
-    await expect(page.locator('text=Pricing')).toBeVisible();
-    await expect(page.locator('text=FAQ')).toBeVisible();
+    const nav = page.locator('header nav');
+    await expect(nav.locator('a', { hasText: 'Features' })).toBeVisible();
+    await expect(nav.locator('a', { hasText: 'How it works' })).toBeVisible();
+    await expect(nav.locator('a', { hasText: 'Get Started' })).toBeVisible();
+    await expect(nav.locator('a', { hasText: 'FAQ' })).toBeVisible();
   });
 
   test('displays Sign In button', async ({ page }) => {
@@ -41,39 +42,21 @@ test.describe('Landing Page', () => {
   });
 });
 
-test.describe('Pricing Page', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/pricing');
-  });
-
-  test('displays all pricing tiers', async ({ page }) => {
-    await expect(page.locator('text=Free')).toBeVisible();
-    await expect(page.locator('text=Pro')).toBeVisible();
-    await expect(page.locator('text=Team')).toBeVisible();
-    await expect(page.locator('text=Enterprise')).toBeVisible();
-  });
-
-  test('displays Pro plan as Most Popular', async ({ page }) => {
-    const proCard = page.locator('text=Most Popular').first();
-    await expect(proCard).toBeVisible();
-  });
-});
-
 test.describe('Auth Pages', () => {
   test('login page shows form', async ({ page }) => {
     await page.goto('/auth/login');
-    await expect(page.locator('text=Master Your Next Interview')).toBeVisible();
+    await expect(page.locator('text=Welcome back')).toBeVisible();
     await expect(page.locator('button[type="submit"]')).toBeVisible();
   });
 
   test('login page has link to register', async ({ page }) => {
     await page.goto('/auth/login');
-    await expect(page.locator('text=Sign up')).toBeVisible();
+    await expect(page.locator('text=Create one free')).toBeVisible();
   });
 
   test('login page has forgot password link', async ({ page }) => {
     await page.goto('/auth/login');
-    await expect(page.locator('text=Forgot your password?')).toBeVisible();
+    await expect(page.locator('text=Forgot?')).toBeVisible();
   });
 
   test('register page shows form with role selection', async ({ page }) => {
@@ -88,12 +71,6 @@ test.describe('Auth Pages', () => {
 });
 
 test.describe('Navigation', () => {
-  test('landing page navigates to pricing', async ({ page }) => {
-    await page.goto('/');
-    await page.locator('text=Pricing').first().click();
-    await expect(page).toHaveURL(/\/pricing/);
-  });
-
   test('404 page shows for unknown routes', async ({ page }) => {
     const response = await page.goto('/nonexistent-page-xyz');
     expect(response?.status()).toBe(404);

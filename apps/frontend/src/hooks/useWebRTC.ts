@@ -312,8 +312,15 @@ export const useWebRTC = (socket: Socket | null, interviewId?: string) => {
             return;
           }
           if (sdp.type === 'offer' && pc.signalingState !== 'stable') {
-            console.warn(`[WebRTC] Ignoring offer from ${data.senderName}. State: ${pc.signalingState}`);
-            return;
+            // Join glare: both peers offered simultaneously. Roll back our own
+            // pending offer so we can accept theirs (perfect-negotiation style)
+            // instead of dropping the remote offer and hanging forever.
+            try {
+              await pc.setLocalDescription({ type: 'rollback' });
+            } catch (rollbackErr) {
+              console.warn(`[WebRTC] Rollback failed, ignoring offer from ${data.senderName}. State: ${pc.signalingState}`);
+              return;
+            }
           }
 
           await pc.setRemoteDescription(new RTCSessionDescription(sdp));
@@ -421,11 +428,32 @@ export const useWebRTC = (socket: Socket | null, interviewId?: string) => {
       updateProctoringLogReason(data.logId, data.reason);
 
       if (userRef.current?.role === 'INTERVIEWER' && data.reason) {
-        toast.info('Alasan Kandidat', `${data.userName}: "${data.reason}"`);
+        toast.info('Candidate reason', `${data.userName}: "${data.reason}"`);
       }
     };
 
+    const emitJoinRoom = () => {
+      const u = userRef.current;
+      const iId = interviewIdRef.current;
+      if (!u || !iId || !socketRef.current) return;
+      // Join room AFTER handlers are registered (race condition fix)
+      socketRef.current.emit('join-room', {
+        interviewId: iId,
+        userId: u.id,
+        userName: u.name,
+        userRole: u.role,
+      });
+    };
+
+    // socket.io reconnects the transport automatically, but join-room must be
+    // re-emitted or the server forgets this socket after a drop.
+    const onSocketConnect = () => {
+      console.info('[WebRTC] Socket (re)connected — rejoining room.');
+      emitJoinRoom();
+    };
+
     // Register all socket handlers SYNCHRONOUSLY before emitting join-room
+    socket.on('connect', onSocketConnect);
     socket.on('peer-joined', onPeerJoined);
     socket.on('webrtc-signal-received', onSignalReceived);
     socket.on('room-joined-success', onRoomJoinedSuccess);
@@ -433,13 +461,9 @@ export const useWebRTC = (socket: Socket | null, interviewId?: string) => {
     socket.on('proctoring-event-received', onProctoringEventReceived);
     socket.on('proctoring-reason-updated', onProctoringReasonUpdated);
 
-    // Join room AFTER handlers are registered (race condition fix)
-    socket.emit('join-room', {
-      interviewId,
-      userId: user.id,
-      userName: user.name,
-      userRole: user.role,
-    });
+    // If already connected when the room effect runs, join now. Otherwise the
+    // 'connect' handler above fires on first connect AND every reconnect.
+    if (socket.connected) emitJoinRoom();
 
     // Fetch ICE config in background (failure falls back to STUN servers)
     fetchIceConfig(API_URL).then((iceConfig) => {
@@ -479,11 +503,6 @@ export const useWebRTC = (socket: Socket | null, interviewId?: string) => {
             });
           }
 
-          if (currentPing === 0) {
-            currentPing = Math.floor(Math.random() * 20) + 18;
-            currentLoss = parseFloat((Math.random() * 0.8).toFixed(1));
-          }
-
           useInterviewStore.setState((state) => ({
             peers: state.peers.map((p) =>
               p.socketId === socketId ? { ...p, ping: currentPing, packetLoss: currentLoss } : p
@@ -501,6 +520,7 @@ export const useWebRTC = (socket: Socket | null, interviewId?: string) => {
       useInterviewStore.getState().setWebrtcPhase('idle');
       console.info('[WebRTC] Cleaning up signaling...');
 
+      socket.off('connect', onSocketConnect);
       socket.off('peer-joined', onPeerJoined);
       socket.off('webrtc-signal-received', onSignalReceived);
       socket.off('room-joined-success', onRoomJoinedSuccess);
@@ -646,76 +666,8 @@ export const useWebRTC = (socket: Socket | null, interviewId?: string) => {
   }, [socket, interviewId, user, localStream]);
 
   // ── AI Proctoring - Tab Switch & Page Focus Tracking ──────────────────────────
-  useEffect(() => {
-    if (!socket || !interviewId || !user || user.role !== 'CANDIDATE') return;
-
-    let isCurrentVisible = true;
-    let isCurrentFocused = true;
-
-    const handleVisibilityChange = () => {
-      const visible = document.visibilityState === 'visible';
-      if (visible !== isCurrentVisible) {
-        isCurrentVisible = visible;
-        if (!visible) {
-          console.info('[Proctoring] Tab Switched / Page hidden');
-          socket.emit('proctoring-event', {
-            interviewId,
-            userId: user.id,
-            userName: user.name,
-            eventType: 'tab-switch',
-          });
-        } else {
-          console.info('[Proctoring] Tab returned / Page visible');
-          socket.emit('proctoring-event', {
-            interviewId,
-            userId: user.id,
-            userName: user.name,
-            eventType: 'focus-gained',
-          });
-        }
-      }
-    };
-
-    const handleBlur = () => {
-      // Debounce focus loss to filter out system dialogs/popups
-      setTimeout(() => {
-        if (document.visibilityState === 'hidden') return; // Handled by visibilitychange
-        if (isCurrentFocused) {
-          isCurrentFocused = false;
-          console.info('[Proctoring] Page Focus Lost');
-          socket.emit('proctoring-event', {
-            interviewId,
-            userId: user.id,
-            userName: user.name,
-            eventType: 'focus-lost',
-          });
-        }
-      }, 300);
-    };
-
-    const handleFocus = () => {
-      if (!isCurrentFocused) {
-        isCurrentFocused = true;
-        console.info('[Proctoring] Page Focus Gained');
-        socket.emit('proctoring-event', {
-          interviewId,
-          userId: user.id,
-          userName: user.name,
-          eventType: 'focus-gained',
-        });
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, [socket, interviewId, user]);
+  // Note: candidate-side proctoring emission lives in useInterviewRoom.ts
+  // (single source of truth, with throttle + warning modal).
 
   return { startLocalStream, toggleAudio, toggleVideo };
 };

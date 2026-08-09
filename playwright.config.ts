@@ -30,7 +30,7 @@ export default defineConfig({
     },
     {
       command: 'npm run start:dev --workspace=apps/backend',
-      url: 'http://localhost:3001',
+      url: 'http://localhost:3001/api',
       reuseExistingServer: !process.env.CI,
       timeout: 120000,
     },

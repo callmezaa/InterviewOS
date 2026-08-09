@@ -38,6 +38,7 @@ export default function InterviewRoom() {
   const {
     roomId, user, isInterviewer, isMobile,
     mounted, loading, activeInterview,
+    interviewLoadError,
     localStream, screenStream, peers,
     isLocalAudioMuted, isLocalVideoMuted, isLocalSpeaking,
     isRecording, startRecording, stopRecording,
@@ -101,7 +102,29 @@ export default function InterviewRoom() {
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
 
-  if (!mounted || !user || !activeInterview) {
+  if (!mounted) {
+    return <RoomSkeleton />;
+  }
+
+  if (interviewLoadError && !activeInterview) {
+    return (
+      <main className="h-screen w-full bg-surface-black text-white flex flex-col items-center justify-center gap-6 font-sans">
+        <div className="text-4xl">⚠️</div>
+        <h1 className="text-2xl font-semibold">Could not load this interview</h1>
+        <p className="text-white/60 max-w-md text-center">
+          The interview could not be found, or you do not have access to it. Please check the link and try again.
+        </p>
+        <button
+          onClick={exitRoom}
+          className="rounded-lg bg-white text-black px-5 py-2 font-medium hover:opacity-90 transition-opacity"
+        >
+          Back to dashboard
+        </button>
+      </main>
+    );
+  }
+
+  if (!user || !activeInterview) {
     return <RoomSkeleton />;
   }
 

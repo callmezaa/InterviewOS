@@ -19,9 +19,6 @@ interface ConsolePanelProps {
   setConsoleOutput: (out: any) => void;
   telemetry: {
     executionTimeMs: number;
-    memoryMb: number;
-    cpuPoints: number[];
-    memoryPoints: number[];
     timeComplexity: string;
     spaceComplexity: string;
     optimizations: string[];
@@ -174,13 +171,12 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
                   <Radio className="w-6 h-6 text-white/10" />
                   <span>No metrics yet. Run code in the editor to trigger performance telemetry analysis.</span>
                 </div>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 h-full">
-                   
-                  {/* Left telemetry segment: Realtime visual meters */}
+) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 h-full">
+                  {/* Left telemetry segment: Execution speed */}
                   <div className="flex flex-col gap-2.5 bg-white/[0.02] border border-white/[0.06] p-2 sm:p-3 rounded-lg">
                     <div className="text-[9px] sm:text-[10px] font-semibold tracking-tight text-body-muted/60 mb-0.5">Execution Resource</div>
-                    
+
                     <div className="flex items-center gap-4">
                       {/* Speed ring gauge */}
                       <div className="relative w-12 h-12 flex items-center justify-center">
@@ -192,82 +188,15 @@ export const ConsolePanel: React.FC<ConsolePanelProps> = ({
                       </div>
                       <div>
                         <div className="text-[11px] font-semibold text-white leading-3">Execution Speed</div>
-                        <span className="text-[9px] text-body-muted/50">Optimal sandbox speed</span>
+                        <span className="text-[9px] text-body-muted/50">Round-trip run time</span>
                       </div>
-                    </div>
-
-                    <div className="flex items-center gap-4">
-                      {/* Memory ring gauge */}
-                      <div className="relative w-12 h-12 flex items-center justify-center">
-                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                          <path className="text-white/5" strokeWidth="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                          <path className="text-amber-500" strokeDasharray={`${(telemetry.memoryMb / 40) * 100}, 100`} strokeWidth="3" strokeLinecap="round" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        </svg>
-                        <div className="absolute text-[9px] font-bold text-primary-on-dark font-mono">{telemetry.memoryMb}M</div>
-
-                        <div className="text-[11px] font-semibold text-white leading-3">Memory Footprint</div>
-                        <span className="text-[9px] text-body-muted/50">RAM allocated internally</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Center telemetry segment: Realtime neon SVG timelines */}
-                  <div className="flex flex-col gap-1 bg-white/[0.02] border border-white/[0.06] p-2 sm:p-3 rounded-lg relative overflow-hidden">
-                    <div className="text-[9px] sm:text-[10px] font-semibold tracking-tight text-body-muted/60">Execution Wave</div>
-                    
-                    {/* Draw custom dynamic SVG graphs */}
-                    <div className="flex-1 relative w-full h-[85px] mt-1">
-                      <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-                        {/* Grid Lines */}
-                        <line x1="0" y1="10" x2="100" y2="10" stroke="white" strokeWidth="0.1" strokeDasharray="1,2" opacity="0.2" />
-                        <line x1="0" y1="20" x2="100" y2="20" stroke="white" strokeWidth="0.1" strokeDasharray="1,2" opacity="0.2" />
-                        <line x1="0" y1="30" x2="100" y2="30" stroke="white" strokeWidth="0.1" strokeDasharray="1,2" opacity="0.2" />
-                        
-                        {/* CPU Spike wave */}
-                        <path 
-                          d={`M 0 ${40 - (telemetry.cpuPoints[0] || 0) / 2.5} 
-                              L 14 ${40 - (telemetry.cpuPoints[1] || 0) / 2.5} 
-                              L 28 ${40 - (telemetry.cpuPoints[2] || 0) / 2.5} 
-                              L 42 ${40 - (telemetry.cpuPoints[3] || 0) / 2.5} 
-                              L 56 ${40 - (telemetry.cpuPoints[4] || 0) / 2.5} 
-                              L 70 ${40 - (telemetry.cpuPoints[5] || 0) / 2.5} 
-                              L 84 ${40 - (telemetry.cpuPoints[6] || 0) / 2.5} 
-                              L 100 ${40 - (telemetry.cpuPoints[7] || 0) / 2.5}`}
-                          fill="none" 
-                          style={{ stroke: 'var(--color-success)' }} 
-                          strokeWidth="1.2" 
-                          strokeLinecap="round"
-                          className="drop-shadow-[0_0_2px_var(--color-success)]"
-                        />
-                        
-                        {/* Memory Allocation line */}
-                        <path 
-                          d={`M 0 ${40 - (telemetry.memoryPoints[0] || 0) * 1.2} 
-                              L 14 ${40 - (telemetry.memoryPoints[1] || 0) * 1.2} 
-                              L 28 ${40 - (telemetry.memoryPoints[2] || 0) * 1.2} 
-                              L 42 ${40 - (telemetry.memoryPoints[3] || 0) * 1.2} 
-                              L 56 ${40 - (telemetry.memoryPoints[4] || 0) * 1.2} 
-                              L 70 ${40 - (telemetry.memoryPoints[5] || 0) * 1.2} 
-                              L 84 ${40 - (telemetry.memoryPoints[6] || 0) * 1.2} 
-                              L 100 ${40 - (telemetry.memoryPoints[7] || 0) * 1.2}`}
-                          fill="none" 
-                          style={{ stroke: 'var(--color-warning)' }} 
-                          strokeWidth="0.8" 
-                          strokeDasharray="2,1"
-                          opacity="0.8"
-                        />
-                      </svg>
-                    </div>
-                    <div className="flex justify-between items-center text-[8px] text-body-muted/70 font-mono mt-0.5 select-none">
-                      <span className="flex items-center gap-1"><span className="w-1 h-1 rounded-full bg-primary-on-dark" /> CPU Load Wave</span>
-                      <span className="flex items-center gap-1"><span className="w-1 h-1 rounded bg-amber-500" /> Mem Allocation</span>
                     </div>
                   </div>
 
                   {/* Right telemetry segment: Complexity Metrics & Optimization Suggestions */}
                   <div className="flex flex-col gap-2 bg-white/[0.02] border border-white/[0.06] p-2 sm:p-3 rounded-lg">
                     <div className="text-[9px] sm:text-[10px] font-semibold tracking-tight text-body-muted/60 mb-0.5">Big-O Complexity</div>
-                    
+
                     <div className="flex gap-2">
                       <div className="flex-1 bg-white/[0.01] border border-white/[0.06] p-1.5 rounded flex flex-col items-center">
                         <span className="text-[8px] text-body-muted/70">Time Complexity</span>

@@ -71,11 +71,32 @@ export class RealtimeGateway
   >();
   // Map interview ID to last history save timestamp
   private lastHistoryTimes = new Map<string, number>();
+  // Lightweight per-socket rate limiter: socketId -> { windowStart, count }
+  private rateLimits = new Map<string, { windowStart: number; count: number }>();
+
+  private readonly RATE_LIMIT_WINDOW_MS = 1000;
+  private readonly RATE_LIMIT_MAX_EVENTS = 40;
 
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
   ) {}
+
+  // Returns true if the socket is joined to the given interview room and has
+  // not exceeded its event rate budget. All write/broadcast handlers gate on
+  // this so a socket can never act on a room it never joined.
+  private grantAccess(client: Socket, interviewId: string): boolean {
+    if (this.socketRooms.get(client.id) !== interviewId) return false;
+
+    const now = Date.now();
+    let entry = this.rateLimits.get(client.id);
+    if (!entry || now - entry.windowStart >= this.RATE_LIMIT_WINDOW_MS) {
+      entry = { windowStart: now, count: 0 };
+      this.rateLimits.set(client.id, entry);
+    }
+    entry.count++;
+    return entry.count <= this.RATE_LIMIT_MAX_EVENTS;
+  }
 
   handleConnection(client: Socket) {
     const token =
@@ -138,19 +159,61 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: JoinRoomDto,
   ) {
-    const { interviewId, userId, userName, userRole } = data;
+    const user = client.data.user as
+      | { sub: string; role: string; email: string }
+      | undefined;
+
+    // Trust nothing from the client payload: identity comes from the verified JWT.
+    if (!user?.sub || !user.role) {
+      client.emit('join-error', { message: 'Invalid or missing session identity' });
+      client.disconnect(true);
+      return;
+    }
+
+    const { interviewId } = data;
+    const userId = user.sub;
+    const userName = data.userName || data.userId || 'Anonymous';
+
+    // Reject if the client claims a different identity than the verified JWT.
+    if (data.userId && data.userId !== userId) {
+      this.logger.warn(
+        `Join rejected: client claimed userId=${data.userId} but JWT sub=${userId} (${client.id})`,
+      );
+      client.emit('join-error', { message: 'Identity mismatch' });
+      client.disconnect(true);
+      return;
+    }
+
+    // Membership check: only scheduled participants may join a room.
+    const participant = await this.prisma.participant.findUnique({
+      where: { userId_interviewId: { userId, interviewId } },
+      select: { role: true, user: { select: { name: true } } },
+    });
+    if (!participant) {
+      this.logger.warn(
+        `Join rejected: ${userId} is not a participant of interview ${interviewId} (${client.id})`,
+      );
+      client.emit('join-error', {
+        message: 'You are not a participant of this interview',
+      });
+      client.disconnect(true);
+      return;
+    }
+
     void client.join(interviewId);
     this.socketRooms.set(client.id, interviewId);
-    this.socketUserDetails.set(client.id, { userId, userName, userRole });
+    this.socketUserDetails.set(client.id, {
+      userId,
+      userName: participant.user?.name || userName,
+      userRole: participant.role, // participant.role from DB, not the client payload
+    });
     this.activeUsers.set(userId, client.id);
-    this.socketRooms.set(client.id, interviewId);
-    this.socketUserDetails.set(client.id, { userId, userName, userRole });
 
     // Tell everyone in the room about the new peer
     client.to(interviewId).emit('peer-joined', {
       userId,
-      userName,
-      userRole,
+      userName: participant.user?.name || userName,
+      userRole: participant.role,
       socketId: client.id,
     });
 
@@ -220,6 +283,7 @@ export class RealtimeGateway
     @MessageBody() data: CodeChangeDto,
   ) {
     const { interviewId, codeContent } = data;
+    if (!this.grantAccess(client, interviewId)) return;
 
     // Broadcast changes to others in the room
     client.to(interviewId).emit('code-updated', codeContent);
@@ -273,6 +337,7 @@ export class RealtimeGateway
     @MessageBody() data: LanguageChangeDto,
   ) {
     const { interviewId, language } = data;
+    if (!this.grantAccess(client, interviewId)) return;
 
     // Broadcast changes to others in the room
     client.to(interviewId).emit('code-language-updated', language);
@@ -293,10 +358,14 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: ChatDto,
   ) {
+    if (!this.grantAccess(client, data.interviewId)) return;
+    const details = this.socketUserDetails.get(client.id);
+    const userId = details?.userId || client.id;
+    const userName = details?.userName || data.senderName;
     // Broadcast message to everyone in the room
     this.server.to(data.interviewId).emit('chat-message-received', {
-      senderId: data.senderId,
-      senderName: data.senderName,
+      senderId: userId,
+      senderName: userName,
       text: data.text,
       timestamp: new Date().toISOString(),
     });
@@ -307,9 +376,12 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { interviewId: string; userId: string; level: number },
   ) {
+    if (!this.grantAccess(client, data.interviewId)) return;
+    const details = this.socketUserDetails.get(client.id);
+    const userId = details?.userId || client.id;
     // Broadcast active speaking level to update waveforms
     client.to(data.interviewId).emit('audio-level-updated', {
-      userId: data.userId,
+      userId,
       level: data.level,
     });
   }
@@ -320,6 +392,7 @@ export class RealtimeGateway
     @MessageBody() data: TranscriptDto,
   ) {
     const { interviewId, speakerName, text, timestamp } = data;
+    if (!this.grantAccess(client, interviewId)) return;
 
     // Broadcast newly appended segment to room
     this.server.to(interviewId).emit('transcript-updated', {
@@ -370,8 +443,11 @@ export class RealtimeGateway
       videoMuted: boolean;
     },
   ) {
+    if (!this.grantAccess(_client, data.interviewId)) return;
+    const details = this.socketUserDetails.get(_client.id);
+    const userId = details?.userId || _client.id;
     _client.to(data.interviewId).emit('media-state-updated', {
-      userId: data.userId,
+      userId,
       audioMuted: data.audioMuted,
       videoMuted: data.videoMuted,
     });
@@ -384,6 +460,7 @@ export class RealtimeGateway
     data: { interviewId: string; shapes: Record<string, unknown> },
   ) {
     const { interviewId, shapes } = data;
+    if (!this.grantAccess(client, interviewId)) return;
     client.to(interviewId).emit('whiteboard-shapes-updated', shapes);
     try {
       await this.prisma.interview.update({
@@ -401,6 +478,7 @@ export class RealtimeGateway
     @MessageBody() data: { interviewId: string },
   ) {
     const { interviewId } = data;
+    if (!this.grantAccess(client, interviewId)) return;
     client.to(interviewId).emit('whiteboard-cleared');
     try {
       await this.prisma.interview.update({
@@ -419,6 +497,7 @@ export class RealtimeGateway
     data: { interviewId: string; x: number; y: number; userName: string },
   ) {
     const { interviewId, x, y, userName } = data;
+    if (!this.grantAccess(client, interviewId)) return;
     const details = this.socketUserDetails.get(client.id);
     const userId = details?.userId || client.id;
     client.to(interviewId).emit('whiteboard-cursor-updated', {
@@ -447,6 +526,7 @@ export class RealtimeGateway
     },
   ) {
     const { interviewId, lineNumber, column, userName, selection } = data;
+    if (!this.grantAccess(client, interviewId)) return;
     const details = this.socketUserDetails.get(client.id);
     const userId = details?.userId || client.id;
     client.to(interviewId).emit('editor-cursor-updated', {
@@ -470,14 +550,18 @@ export class RealtimeGateway
     },
   ) {
     const { interviewId, userId, userName, eventType } = data;
+    if (!this.grantAccess(client, interviewId)) return;
+    const details = this.socketUserDetails.get(client.id);
+    const safeUserId = details?.userId || userId;
+    const safeUserName = details?.userName || userName;
     const timestamp = new Date().toISOString();
     this.logger.log(
-      `[Proctoring] User ${userName} (${userId}) triggered event: ${eventType} in room ${interviewId}`,
+      `[Proctoring] User ${safeUserName} (${safeUserId}) triggered event: ${eventType} in room ${interviewId}`,
     );
 
     client.to(interviewId).emit('proctoring-event-received', {
-      userId,
-      userName,
+      userId: safeUserId,
+      userName: safeUserName,
       eventType,
       timestamp,
     });
@@ -511,8 +595,8 @@ export class RealtimeGateway
 
       currentLogs.push({
         id: Math.random().toString(36).substring(2, 9),
-        userId,
-        userName,
+        userId: safeUserId,
+        userName: safeUserName,
         eventType,
         timestamp,
       });
@@ -540,8 +624,12 @@ export class RealtimeGateway
     },
   ) {
     const { interviewId, userId, userName, reason } = data;
+    if (!this.grantAccess(client, interviewId)) return;
+    const details = this.socketUserDetails.get(client.id);
+    const safeUserId = details?.userId || userId;
+    const safeUserName = details?.userName || userName;
     this.logger.log(
-      `[Proctoring] Reason from ${userName} (${userId}): "${reason}"`,
+      `[Proctoring] Reason from ${safeUserName} (${safeUserId}): "${reason}"`,
     );
 
     try {
@@ -576,7 +664,7 @@ export class RealtimeGateway
       // Find the last event for this user and attach the reason
       let targetLogId: string | null = null;
       for (let i = currentLogs.length - 1; i >= 0; i--) {
-        if (currentLogs[i].userId === userId) {
+        if (currentLogs[i].userId === safeUserId) {
           currentLogs[i].reason = reason;
           targetLogId = currentLogs[i].id;
           break;
@@ -591,8 +679,8 @@ export class RealtimeGateway
 
         client.to(interviewId).emit('proctoring-reason-updated', {
           logId: targetLogId,
-          userId,
-          userName,
+          userId: safeUserId,
+          userName: safeUserName,
           reason,
         });
       }
@@ -606,6 +694,7 @@ export class RealtimeGateway
     @ConnectedSocket() client: Socket,
     @MessageBody() data: { interviewId: string; isRecording: boolean },
   ) {
+    if (!this.grantAccess(client, data.interviewId)) return;
     client.to(data.interviewId).emit('recording-state-updated', {
       isRecording: data.isRecording,
     });
