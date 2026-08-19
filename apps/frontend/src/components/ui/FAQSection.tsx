@@ -2,7 +2,6 @@
 
 import { useRef, useState } from 'react';
 import { motion, useInView } from 'motion/react';
-import { Badge } from './Badge';
 import { BouncyAccordion } from '../motion/bouncy-accordion';
 
 const FAQS = [
@@ -62,7 +61,9 @@ export function FAQSection() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-shrink-0 flex-col gap-4 lg:w-[280px] lg:pt-1"
         >
-          <Badge variant="secondary" className="w-fit">FAQ</Badge>
+          <span className="inline-flex items-center w-fit h-7 px-4 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase text-primary-on-dark bg-gradient-to-b from-[#0d3057] to-[#071d38] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.35)]">
+            FAQ
+          </span>
           <h2 className="font-display text-[28px] font-semibold leading-tight tracking-tight text-white sm:text-[34px]">
             Common questions
           </h2>

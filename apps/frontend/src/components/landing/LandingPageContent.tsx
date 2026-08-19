@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { motion, useScroll, useMotionValueEvent } from 'motion/react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
 import { ScrollReveal } from '../ui/ScrollReveal';
 import { TextReveal } from '../motion/text-reveal';
 import { useActiveSection } from '../../hooks/useActiveSection';
@@ -19,8 +19,8 @@ const HowItWorksSection = dynamic(
   () => import('../ui/HowItWorksSection').then((m) => m.HowItWorksSection),
   { ssr: false }
 );
-const PricingCalloutSection = dynamic(
-  () => import('../ui/PricingCalloutSection').then((m) => m.PricingCalloutSection),
+const TestimonialSection = dynamic(
+  () => import('../ui/TestimonialSection').then((m) => m.TestimonialSection),
   { ssr: false }
 );
 const FAQSection = dynamic(
@@ -35,17 +35,14 @@ const SiteFooter = dynamic(
   () => import('../ui/SiteFooter').then((m) => m.SiteFooter),
   { ssr: false }
 );
-const TerminalCopyBox = dynamic(
-  () => import('../ui/TerminalCopyBox').then((m) => m.TerminalCopyBox),
-  { ssr: false }
-);
+
 const FeatureCard = dynamic(
   () => import('../ui/FeatureCard').then((m) => m.FeatureCard),
   { ssr: false }
 );
 
 export default function LandingPageContent() {
-  const activeSection = useActiveSection(['features', 'how-it-works', 'testimonials', 'get-started', 'faq']);
+  const activeSection = useActiveSection(['features', 'how-it-works', 'testimonials', 'faq']);
   const { scrollY } = useScroll();
   const [scrolled, setScrolled] = useState(false);
 
@@ -81,7 +78,7 @@ export default function LandingPageContent() {
           {([
             { label: 'Features',    href: '#features',     id: 'features' },
             { label: 'How it works', href: '#how-it-works', id: 'how-it-works' },
-            { label: 'Get Started',  href: '#get-started',  id: 'get-started' },
+            { label: 'Testimonials', href: '#testimonials', id: 'testimonials' },
             { label: 'FAQ',          href: '#faq',          id: 'faq' },
           ] as const).map(({ label, href, id }) => {
             const isActive = activeSection === id;
@@ -168,10 +165,11 @@ export default function LandingPageContent() {
                 visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
               }}
             >
-              <Link href="/auth/login">
-                <Button variant="default" size="lg" className="w-[180px]">
+              <Link href="/auth/login" className="group/cta relative inline-flex">
+                <span className="relative flex items-center justify-center gap-2 h-[52px] px-9 rounded-full text-[15px] font-semibold tracking-tight text-white select-none bg-gradient-to-b from-[#0d86ff] to-[#0062c4] shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,20,60,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:from-[#1890ff] hover:to-[#0a66ce] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-3px_6px_rgba(0,20,60,0.3)] active:translate-y-px active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_2px_6px_rgba(0,20,60,0.4)]">
                   Get Started
-                </Button>
+                  <ArrowRight className="size-4 transition-transform duration-300 group-hover/cta:translate-x-1" />
+                </span>
               </Link>
 
               <Link href="/auth/login" className="group/learn text-primary-on-dark flex items-center gap-1.5 font-sans text-[17px] tracking-tight hover:text-white transition-colors duration-200">
@@ -180,19 +178,6 @@ export default function LandingPageContent() {
                   →
                 </span>
               </Link>
-            </motion.div>
-
-            <motion.div
-              className="flex flex-col items-center gap-2 mt-2"
-              variants={{
-                hidden: { opacity: 0, y: 12, filter: 'blur(4px)' },
-                visible: { opacity: 1, y: 0, filter: 'blur(0px)', transition: { duration: 0.55, delay: 0.1, ease: [0.22, 1, 0.36, 1] } },
-              }}
-            >
-              <TerminalCopyBox />
-              <p className="text-[11px] font-mono text-white/20 tracking-tight">
-                No account required to try
-              </p>
             </motion.div>
           </motion.div>
 
@@ -204,7 +189,9 @@ export default function LandingPageContent() {
         {/* Features */}
         <section id="features" className="bg-surface-black py-section px-6 md:px-section-x">
           <div className="max-w-[1100px] mx-auto text-center mb-16 flex flex-col items-center gap-3">
-            <Badge variant="secondary">Features</Badge>
+            <span className="inline-flex items-center h-7 px-4 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase text-primary-on-dark bg-gradient-to-b from-[#0d3057] to-[#071d38] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.35)]">
+              Features
+            </span>
             <h2 className="font-display font-bold text-[32px] sm:text-[40px] leading-tight tracking-tight text-white">
               Everything you need for tech hiring
             </h2>
@@ -212,45 +199,45 @@ export default function LandingPageContent() {
           <div className="max-w-[1100px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
             <FeatureCard
               title="Realtime signaling"
-              description="Sub-100ms peer connection signaling coordinates instant audio, video and compiler data transfers."
+              description="Sub-100ms signaling syncs audio, video, and compiler data in real time."
               iconName="activity"
               revealDelay={0}
             />
             <FeatureCard
               title="Whisper transcript"
-              description="AI processes spoken audio and registers collaborative transcripts in real time across both participants."
+              description="Live Whisper transcription turns spoken audio into a shared transcript."
               iconName="cpu"
               revealDelay={0.08}
             />
             <FeatureCard
               title="AI evaluation"
-              description="Generate feedback maps covering code complexity, collaboration skills, and development areas automatically."
+              description="AI feedback maps code complexity, collaboration, and growth areas."
               iconName="shield"
               revealDelay={0.16}
             />
             <FeatureCard
               title="Proctoring AI"
-              description="Passive focus detection monitors tab switches and window blur events, logging behavioral signals throughout the session."
+              description="Tracks tab switches and window blur to log focus during the session."
               iconName="eye"
               revealDelay={0.24}
             />
             <FeatureCard
               title="Role-based access"
-              description="Granular permission tiers for interviewers, candidates, and observers — each with a tailored, scoped view of the session."
+              description="Granular tiers give interviewers, candidates, and observers scoped views."
               iconName="lock"
               revealDelay={0.32}
             />
             <FeatureCard
               title="Session recording"
-              description="Automatic full-session recordings with synchronized audio, video, and code playback for async post-review by the hiring committee."
+              description="Synchronized audio, video, and code playback for async review."
               iconName="video"
-              revealDelay={0.40}
+              revealDelay={0.4}
             />
           </div>
         </section>
 
         <HowItWorksSection />
-        <PricingCalloutSection />
+        <TestimonialSection />
         <FAQSection />
         <PreFooterCTA />
       </main>

@@ -3,7 +3,6 @@
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { Star } from 'lucide-react';
-import { Badge } from './Badge';
 
 // ── Testimonial data ─────────────────────────────────────────────────────────
 const TESTIMONIALS = [
@@ -127,7 +126,9 @@ export function TestimonialSection() {
           transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
           className="flex flex-col items-center text-center gap-3"
         >
-          <Badge>Testimonials</Badge>
+          <span className="inline-flex items-center h-7 px-4 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase text-primary-on-dark bg-gradient-to-b from-[#0d3057] to-[#071d38] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.35)]">
+            Testimonials
+          </span>
           <h2 className="font-display font-semibold text-[32px] sm:text-[40px] leading-tight tracking-tight text-white mt-2">
             What engineering leaders say
           </h2>

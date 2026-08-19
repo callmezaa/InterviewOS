@@ -8,6 +8,7 @@ import { Button } from '../../../components/ui/Button';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { toast } from '../../../store/useToastStore';
 import { AuthLayout } from '../../../components/auth/AuthLayout';
+import { RoleIcon } from '../../../components/auth/RoleIcon';
 import { InputField } from '../../../components/auth/InputField';
 import { AuthSkeleton } from '../../../components/auth/AuthSkeleton';
 import { OAuthButtons } from '../../../components/auth/OAuthButtons';
@@ -133,11 +134,11 @@ export default function RegisterPage() {
             onClick={() => setRole(r)}
             className={`flex flex-col items-center gap-1.5 px-3 py-3 rounded-lg border text-center transition-all duration-200 ${
               role === r
-                ? 'border-white/[0.12] bg-white/[0.04]'
+                ? 'border-white/[0.12] bg-white/[0.04] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]'
                 : 'border-white/[0.06] bg-white/[0.02] hover:border-white/[0.1] hover:bg-white/[0.03]'
             }`}
           >
-            <span className="text-[20px]">{r === 'INTERVIEWER' ? '🎤' : '🧑'}</span>
+            <RoleIcon role={r} />
             <span className={`text-[12px] font-semibold leading-tight ${role === r ? 'text-white' : 'text-white/70'}`}>
               {r === 'INTERVIEWER' ? "I'm an Interviewer" : "I'm a Candidate"}
             </span>
@@ -215,9 +216,9 @@ export default function RegisterPage() {
 
         <Button
           type="submit"
-          variant="default"
+          variant="premium"
           disabled={loading || (!isFormValid && touched.name && touched.email && touched.password)}
-          className="w-full mt-1"
+          className="w-full h-11 mt-1"
         >
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create account'}
         </Button>

@@ -3,8 +3,6 @@
 import { useRef } from 'react';
 import { motion, useInView } from 'motion/react';
 import Link from 'next/link';
-import { Button } from './Button';
-import { Badge } from './Badge';
 
 export function PreFooterCTA() {
   const ref = useRef<HTMLElement>(null);
@@ -21,7 +19,9 @@ export function PreFooterCTA() {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="relative group overflow-hidden p-10 sm:p-16 rounded-lg border border-white/[0.06] bg-white/[0.01] text-center flex flex-col items-center justify-center gap-6 shadow-[inset_0_1.5px_0_rgba(255,255,255,0.04)] transition-all duration-500"
         >          {/* Badge */}
-          <Badge className="inline-block">Elevate your team hiring standard</Badge>
+          <span className="inline-flex items-center h-6 px-3.5 rounded-full text-[11px] font-semibold tracking-[0.08em] uppercase text-primary-on-dark bg-gradient-to-b from-[#0d3057] to-[#071d38] border border-white/[0.08] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),inset_0_-1px_0_rgba(0,0,0,0.35)]">
+            Elevate your team hiring standard
+          </span>
 
           {/* Headline */}
           <h2 className="font-display font-semibold text-[32px] sm:text-[48px] leading-[1.1] tracking-tight text-white max-w-[650px]">
@@ -36,12 +36,12 @@ export function PreFooterCTA() {
           {/* Call-to-action button wrapper */}
           <div className="relative group/btn mt-4">
             <Link href="/auth/login">
-              <Button variant="default" size="lg" className="w-[200px] text-[15px] font-sans flex items-center justify-center gap-1.5">
-                Get Started Free 
-                <span className="text-[16px] transition-transform duration-300 ease-out transform group-hover/btn:translate-x-1.5">
+              <span className="flex items-center justify-center gap-2 h-[52px] px-9 rounded-full text-[15px] font-semibold tracking-tight text-white select-none bg-gradient-to-b from-[#0d86ff] to-[#0062c4] shadow-[inset_0_1px_0_rgba(255,255,255,0.3),inset_0_-2px_4px_rgba(0,20,60,0.25)] transition-all duration-200 hover:-translate-y-0.5 hover:from-[#1890ff] hover:to-[#0a66ce] hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.35),inset_0_-3px_6px_rgba(0,20,60,0.3)] active:translate-y-px active:shadow-[inset_0_1px_0_rgba(255,255,255,0.2),inset_0_2px_6px_rgba(0,20,60,0.4)]">
+                Get Started Free
+                <span className="text-[16px] transition-transform duration-300 ease-out group-hover/btn:translate-x-1">
                   →
                 </span>
-              </Button>
+              </span>
             </Link>
           </div>
 

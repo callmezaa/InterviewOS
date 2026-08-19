@@ -73,11 +73,11 @@ export function SiteFooter() {
         variants={STAGGER}
         initial="hidden"
         animate={isInView ? 'visible' : 'hidden'}
-        className="max-w-[1100px] mx-auto px-6 md:px-12 pt-16 pb-12 grid grid-cols-1 md:grid-cols-12 gap-12 md:gap-8"
+        className="max-w-[1100px] mx-auto px-6 md:px-12 pt-16 pb-12 grid grid-cols-2 md:grid-cols-12 gap-8"
       >
 
         {/* ── Col 1: Branding (5 cols) ── */}
-        <motion.div variants={ITEM} className="md:col-span-5 flex flex-col gap-5">
+        <motion.div variants={ITEM} className="col-span-2 md:col-span-5 flex flex-col gap-5">
           {/* Logo */}
           <div className="flex items-center gap-2 select-none">
             <Image
@@ -127,7 +127,7 @@ export function SiteFooter() {
         </motion.div>
 
         {/* ── Col 2: Product (3 cols) ── */}
-        <motion.div variants={ITEM} className="md:col-span-3 flex flex-col gap-4">
+        <motion.div variants={ITEM} className="col-span-1 md:col-span-3 flex flex-col gap-4">
           <p className="text-[11px] font-mono font-semibold text-white/25 tracking-tight">
             Product
           </p>
@@ -149,7 +149,7 @@ export function SiteFooter() {
         </motion.div>
 
         {/* ── Col 3: Company (4 cols) ── */}
-        <motion.div variants={ITEM} className="md:col-span-4 flex flex-col gap-4">
+        <motion.div variants={ITEM} className="col-span-1 md:col-span-4 flex flex-col gap-4">
           <p className="text-[11px] font-mono font-semibold text-white/25 tracking-tight">
             Company
           </p>

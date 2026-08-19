@@ -153,9 +153,9 @@ export default function LoginPage() {
 
           <Button
             type="submit"
-            variant="default"
+            variant="premium"
             disabled={twoFactorCode.length !== 6 || loading}
-            className="w-full"
+            className="w-full h-11"
           >
             {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Verify'}
           </Button>
@@ -227,7 +227,7 @@ export default function LoginPage() {
           />
         </div>
 
-        <Button type="submit" variant="default" disabled={loading} className="w-full mt-1">
+        <Button type="submit" variant="premium" disabled={loading} className="w-full h-11 mt-1">
           {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign in'}
         </Button>
       </form>
